@@ -39,15 +39,15 @@ function love.resize(w, h)
 end
 
 function love.update(dt)
-    G_currentTime = love.timer.getTime() - startTime
+    G.currentTime = love.timer.getTime() - startTime
 
     G.scenery:update(dt)
 end
 
 function love.draw()
-    love.graphics.clear(G.palette[2])
-    Push:apply("start")
     love.graphics.clear(G.palette[1])
+    Push:apply("start")
+    love.graphics.clear(G.palette[2])
     G.scenery:draw()
     Push:apply("end")
 end
