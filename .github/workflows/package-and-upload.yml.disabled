@@ -1,0 +1,31 @@
+name: Package and Upload
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Set up Butler
+        run: |
+          curl -L -o /usr/local/bin/butler https://broth.itch.ovh/butler/linux-amd64/head/butler
+          chmod +x /usr/local/bin/butler
+
+      - name: Run package and upload script
+        env:
+          BUTLER_CREDENTIALS: ${{ secrets.BUTLER_CREDENTIALS }}
+        run: |
+          chmod +x package-and-upload.sh
+          ./package-and-upload.sh --increment-version

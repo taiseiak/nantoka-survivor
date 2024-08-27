@@ -1,0 +1,15 @@
+[
+  {
+    "label": "Run Love2D",
+    "command": "love ./game"
+  },
+  { "label": "Package Love2D game", "command": "./package.sh" },
+  {
+    "label": "Package and upload Love2D game",
+    "command": "./package-and-upload.sh"
+  },
+  {
+    "label": "Test web build for Love2D game",
+    "command": "./test-web-build.sh"
+  }
+]

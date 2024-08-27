@@ -1,0 +1,9 @@
+name: nantoka-survivor
+version: 0.0.1
+assets:
+  - "game/**/*"
+targets:
+  - love
+  - web
+  - win-64
+  - mac
