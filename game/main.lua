@@ -45,9 +45,9 @@ function love.update(dt)
 end
 
 function love.draw()
-    love.graphics.clear(G.palette[2])
-    Push:apply("start")
     love.graphics.clear(G.palette[1])
+    Push:apply("start")
+    love.graphics.clear(G.palette[2])
     G.scenery:draw()
     Push:apply("end")
 end
