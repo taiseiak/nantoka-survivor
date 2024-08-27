@@ -8,7 +8,7 @@ local gameMidY = G.gameHeight / 2
 
 function game:load(args)
     self.text = Text.new("center", {
-        color = G.palette[2],
+        color = G.palette[1],
         font = Fonts.shinonome,
     })
     self.text:send("Hello World!", 200)
