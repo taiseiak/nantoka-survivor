@@ -13,4 +13,4 @@ G.palette = {
 
 -- This is the default scene.
 -- Change the string to change the default scene.
-G.scenery = Scenery("scene-template")
+G.scenery = Scenery("draw-circle-scene")

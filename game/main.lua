@@ -39,7 +39,7 @@ function love.resize(w, h)
 end
 
 function love.update(dt)
-    G_currentTime = love.timer.getTime() - startTime
+    G.currentTime = love.timer.getTime() - startTime
 
     G.scenery:update(dt)
 end
