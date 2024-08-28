@@ -13,10 +13,8 @@ function game:load(args)
   })
   self.text:send("Hello World!", 200)
 
-  self.circle = {
-    radius = 50,
-    color = G.palette[2]
-  }
+  self.image = love.graphics.newImage(
+    "/Users/miyasakotaito/Desktop/nantoka-survivor/game/assets/sprites/playdate_circle.png")
 end
 
 function game:update(dt)
@@ -26,8 +24,9 @@ end
 function game:draw()
   self.text:draw(gameMidX - self.text.get.width / 2, gameMidY - self.text.get.height / 2)
 
-  love.graphics.setColor(self.circle.color)
-  love.graphics.circle("fill", gameMidX, gameMidY, self.circle.radius)
+  local imagewidth = self.image:getWidth()
+  local imageHeight = self.image:getHeight()
+  love.graphics.draw(self.image, gameMidX - imagewidth / 2, gameMidY - imageHeight / 2)
 end
 
 return game
