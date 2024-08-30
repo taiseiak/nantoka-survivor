@@ -7,11 +7,11 @@ local gameMidX = G.gameWidth / 2
 local gameMidY = G.gameHeight / 2
 
 function game:load(args)
-  self.text = Text.new("center", {
-    color = G.palette[2],
-    font = Fonts.shinonome,
-  })
-  self.text:send("Hello World!", 200)
+  -- self.text = Text.new("center", {
+  --   color = G.palette[2],
+  --   font = Fonts.shinonome,
+  -- })
+  -- self.text:send("Hello World!", 200)
 
   -- 画像の読み込み
   self.image = love.graphics.newImage(
@@ -24,7 +24,7 @@ function game:load(args)
 end
 
 function game:update(dt)
-  self.text:update(dt)
+  -- self.text:update(dt)
 
   -- 矢印キーでの移動
   if love.keyboard.isDown("left") then
@@ -42,7 +42,7 @@ function game:update(dt)
 end
 
 function game:draw()
-  self.text:draw(gameMidX - self.text.get.width / 2, gameMidY - self.text.get.height / 2)
+  -- self.text:draw(gameMidX - self.text.get.width / 2, gameMidY - self.text.get.height / 2)
 
   local imageWidth = self.image:getWidth()
   local imageHeight = self.image:getHeight()
