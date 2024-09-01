@@ -15,7 +15,7 @@ function game:load(args)
 
   -- 画像の読み込み
   self.image = love.graphics.newImage(
-    "game/assets/sprites/playdate_circle.png")
+    "assets/sprites/playdate_circle.png")
   -- 画像の初期位置
   self.imageX = gameMidX
   self.imageY = gameMidY
