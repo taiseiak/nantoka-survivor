@@ -32,18 +32,23 @@ function game:load(args)
     self.cards = {}
     table.insert(self.cards, {
         sprite = cardImage,
+        position = 1
     })
     table.insert(self.cards, {
         sprite = cardImage,
+        position = 2
     })
     table.insert(self.cards, {
         sprite = cardImage,
+        position = 3
     })
     table.insert(self.cards, {
         sprite = cardImage,
+        position = 4
     })
     table.insert(self.cards, {
         sprite = cardImage,
+        position = 5
     })
 
     self.circle = love.graphics.newImage("assets/sprites/playdate_circle.png")
@@ -61,8 +66,14 @@ function game:update(dt)
 end
 
 function game:draw()
-    for index, card in ipairs(self.cards) do
-        love.graphics.draw(card.sprite, card.vector.x, card.vector.y)
+    local cardDrawOrder = { 1, 5, 2, 4, 3 }
+    for index, value in ipairs(cardDrawOrder) do
+        for _, card in ipairs(self.cards) do
+            if card["position"] == value then
+                local position = self.cardPositions[value]
+                love.graphics.draw(card.sprite, position.x, position.y)
+            end
+        end
     end
     love.graphics.draw(self.circle, self.circleVector.x, self.circleVector.y)
 end
