@@ -1,6 +1,7 @@
 local Text = require("libraries.slog-text")
 local Push = require("libraries.push")
 local Baton = require("libraries.baton")
+local HC = require("libraries.HC")
 
 local game = {}
 
@@ -19,12 +20,6 @@ local input = Baton.new {
     move = { 'left', 'right', 'up', 'down' } },
 }
 function game:load(args)
-  -- self.text = Text.new("center", {
-  --   color = G.palette[2],
-  --   font = Fonts.shinonome,
-  -- })
-  -- self.text:send("Hello World!", 200)
-
   -- 画像の読み込み
   self.image = love.graphics.newImage(
     "assets/sprites/playdate_circle.png")
@@ -33,40 +28,68 @@ function game:load(args)
   self.imageY = gameMidY
   -- 画像の移動速度
   self.speed = 200
+
+
+
+  -- 敵の設定
+  self.enemies = {}
+  self.spawnTimer = 0
+  --  何秒間かに一体敵を生成
+  self.spawnInterval = 3
 end
 
 function game:update(dt)
-  -- self.text:update(dt)
-
-  -- 矢印キーでの移動
-  --   if love.keyboard.isDown("left") then
-  --     self.imageX = self.imageX - self.speed * dt
-  --   end
-  --   if love.keyboard.isDown("right") then
-  --     self.imageX = self.imageX + self.speed * dt
-  --   end
-  --   if love.keyboard.isDown("up") then
-  --     self.imageY = self.imageY - self.speed * dt
-  --   end
-  --   if love.keyboard.isDown("down") then
-  --     self.imageY = self.imageY + self.speed * dt
-  --   end
   input:update()
 
   -- 入力で方向を取得
   local x, y = input:get "move"
 
-  -- 画像をその方向に移動
+  -- player画像をその方向に移動
   self.imageX = self.imageX + x * self.speed * dt
   self.imageY = self.imageY + y * self.speed * dt
+
+  -- 敵の生成のタイミング
+  self.spawnTimer = self.spawnTimer + dt
+  if self.spawnTimer >= self.spawnInterval then
+    self:spawnEnemy()
+    self.spawnTimer = 0
+  end
+
+  -- enemy画像playerに向かってを移動
+  for _, enemy in ipairs(self.enemies) do
+    local dirX = self.imageX - enemy.x
+    local dirY = self.imageY - enemy.y
+    local len = math.sqrt(dirX * dirX + dirY * dirY)
+    if len > 0 then
+      enemy.x = enemy.x + (dirX / len) * enemy.speed * dt
+      enemy.y = enemy.y + (dirY / len) * enemy.speed * dt
+    end
+  end
 end
 
 function game:draw()
-  -- self.text:draw(gameMidX - self.text.get.width / 2, gameMidY - self.text.get.height / 2)
-
+  -- player描画
   local imageWidth = self.image:getWidth()
   local imageHeight = self.image:getHeight()
   love.graphics.draw(self.image, self.imageX - imageWidth / 2, self.imageY - imageHeight / 2)
+
+  -- enemy描画
+  for _, enemy in ipairs(self.enemies) do
+    local enemyWidth = enemy.image:getWidth()
+    local enemyHeight = enemy.image:getHeight()
+    love.graphics.draw(enemy.image, enemy.x - enemyWidth / 2, enemy.y - enemyHeight / 2)
+  end
+end
+
+-- 新しく敵を生成する関数
+function game:spawnEnemy()
+  local enemy = {
+    image = love.graphics.newImage("assets/sprites/playdate_circle.png"),
+    x = math.random(0, G.gameWidth),
+    y = math.random(0, G.gameHeight),
+    speed = 100
+  }
+  table.insert(self.enemies, enemy)
 end
 
 return game
