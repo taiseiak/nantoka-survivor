@@ -28,9 +28,10 @@ function game:load(args)
   self.imageY = gameMidY
   -- 画像の移動速度
   self.speed = 200
-
-
-
+  -- HCワールドの初期化
+  self.world = HC.new()
+  -- playerのcolliderを設定ここでは一旦丸にする
+  self.playerCollider = self.world:circle(self.imageX, self.imageY, self.image:getWidth() / 2)
   -- 敵の設定
   self.enemies = {}
   self.spawnTimer = 0
@@ -64,7 +65,14 @@ function game:update(dt)
       enemy.x = enemy.x + (dirX / len) * enemy.speed * dt
       enemy.y = enemy.y + (dirY / len) * enemy.speed * dt
     end
+    -- 敵のColliderの位置の更新
+    enemy.collider:moveTo(enemy.x, enemy.y)
   end
+  -- for _, enemy in ipairs(self.enemies) do
+  --   if self.playerCollider:collidesWith(enemy.collider) then
+  --     print("out!!!")
+  --   end
+  -- end
 end
 
 function game:draw()
@@ -89,7 +97,33 @@ function game:spawnEnemy()
     y = math.random(0, G.gameHeight),
     speed = 100
   }
-  table.insert(self.enemies, enemy)
+  -- 衝突しない位置を探す
+  local radius = enemy.image:getWidth() / 2
+  local maxAttempts = 10
+  local attempts = 0
+  local validPosition = false
+
+  while not validPosition and attempts < maxAttempts do
+    local overlapping = false
+    local newCollider = self.world:circle(enemy.x, enemy.y, radius)
+    for _, otherEnemy in ipairs(self.enemies) do
+      if newCollider:collidesWith(otherEnemy.collider) then
+        overlapping = true
+        break
+      end
+    end
+
+    if not overlapping then
+      validPosition = true
+      enemy.collider = newCollider
+      table.insert(self.enemies, enemy)
+    else
+      -- 新しい位置を設定
+      enemy.x = math.random(0, G.gameWidth)
+      enemy.y = math.random(0, G.gameHeight)
+      attempts = attempts + 1
+    end
+  end
 end
 
 return game
