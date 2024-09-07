@@ -49,6 +49,10 @@ function game:update(dt)
   self.imageX = self.imageX + x * self.speed * dt
   self.imageY = self.imageY + y * self.speed * dt
 
+  -- プレイヤーがゲーム画面の外に出ないようにする
+  self.imageX = math.max(self.image:getWidth() / 2, math.min(self.imageX, G.gameWidth - self.image:getWidth() / 2))
+  self.imageY = math.max(self.image:getHeight() / 2, math.min(self.imageY, G.gameHeight - self.image:getHeight() / 2))
+
   -- 敵の生成のタイミング
   self.spawnTimer = self.spawnTimer + dt
   if self.spawnTimer >= self.spawnInterval then
@@ -73,6 +77,31 @@ function game:update(dt)
   --     print("out!!!")
   --   end
   -- end
+  -- enemy同士の重なりを修正してくれる関数
+  self:resolveCollisions()
+end
+
+function game:resolveCollisions()
+  for i, enemy1 in ipairs(self.enemies) do
+    for j = i + 1, #self.enemies do
+      local enemy2 = self.enemies[j]
+      if enemy1.collider:collidesWith(enemy2.collider) then
+        -- 重なっている方向を計算して離す
+        local overlap = enemy1.collider:collidesWith(enemy2.collider)
+        if overlap then
+          local dx, dy = overlap.normal.x * overlap.depth, overlap.normal.y * overlap.depth
+          -- 敵を分離させる (敵1と敵2を半分ずつ動かす)
+          enemy1.x = enemy1.x - dx / 2
+          enemy1.y = enemy1.y - dy / 2
+          enemy2.x = enemy2.x + dx / 2
+          enemy2.y = enemy2.y + dy / 2
+          -- コライダーも移動
+          enemy1.collider:moveTo(enemy1.x, enemy1.y)
+          enemy2.collider:moveTo(enemy2.x, enemy2.y)
+        end
+      end
+    end
+  end
 end
 
 function game:draw()
@@ -91,14 +120,37 @@ end
 
 -- 新しく敵を生成する関数
 function game:spawnEnemy()
+  local radius = self.image:getWidth() / 2 -- プレイヤーの半径を使用
   local enemy = {
     image = love.graphics.newImage("assets/sprites/playdate_circle.png"),
-    x = math.random(0, G.gameWidth),
-    y = math.random(0, G.gameHeight),
+    x = 0,
+    y = 0,
     speed = 100
   }
+  -- コライダーを作成して設定する
+  enemy.collider = self.world:circle(enemy.x, enemy.y, radius)
+  table.insert(self.enemies, enemy)
+  -- enemyを画面外からランダムで出現
+  local side = math.random(1, 4) -- 1: 上, 2: 下, 3: 左, 4: 右
+  if side == 1 then
+    -- 上側に出現
+    enemy.x = math.random(0, G.gameWidth)
+    enemy.y = -radius
+  elseif side == 2 then
+    -- 下側に出現
+    enemy.x = math.random(0, G.gameWidth)
+    enemy.y = G.gameHeight + radius -- 画面の下外側
+  elseif side == 3 then
+    -- 左側に出現
+    enemy.x = -radius -- 画面の左外側
+    enemy.y = math.random(0, G.gameHeight)
+  elseif side == 4 then
+    -- 右側に出現
+    enemy.x = G.gameWidth + radius -- 画面の右外側
+    enemy.y = math.random(0, G.gameHeight)
+  end
+
   -- 衝突しない位置を探す
-  local radius = enemy.image:getWidth() / 2
   local maxAttempts = 10
   local attempts = 0
   local validPosition = false
@@ -123,6 +175,9 @@ function game:spawnEnemy()
       enemy.y = math.random(0, G.gameHeight)
       attempts = attempts + 1
     end
+  end
+  if attempts >= maxAttempts then
+    print("Failed to find a valid spawn position for the enemy.")
   end
 end
 
