@@ -1,14 +1,33 @@
 local Vector = require("libraries.brinevector")
 local Baton = require("libraries.baton")
 local Card = require("components.card")
+local Deck = require("components.deck")
 
 local game = {}
 
 local gameMidX = G.gameWidth / 2
 local gameMidY = G.gameHeight / 2
 
+local characterSprite = love.graphics.newImage("assets/sprites/kenney_tiny-dungeon/Tiles/tile_0084.png")
+characterSprite:setFilter("nearest", "nearest")
+
 local function frameIndependentLerp(currentValue, targetValue, deltaTime, halfLife)
     return targetValue + (currentValue - targetValue) * 2 ^ (-deltaTime / halfLife)
+end
+
+function game:updateCardPositions()
+    for i, card in ipairs(self.deck.cards) do
+        if i == 1 or i == 2 or i == 3 or i == 4 or i == 5 then
+            local visPosition = i + 2
+            if visPosition > #self.cardPositions then
+                visPosition = visPosition - #self.cardPositions
+            end
+            card.position = self.cardPositions[visPosition]
+        elseif card.position ~= self.cardOutsidePosition then
+            card.position = self.cardOutsidePosition
+        end
+        card.startVisualPosition = card.visualPosition
+    end
 end
 
 function game:load(args)
@@ -32,66 +51,42 @@ function game:load(args)
         Vector(G.gameWidth - cardImage:getWidth() / 2 - 18, gameMidY - cardImage:getHeight() / 2 + 42),
         Vector(G.gameWidth - cardImage:getWidth() / 2 - 5, gameMidY - cardImage:getHeight() / 2 + 65),
     }
+    self.cardOutsidePosition = Vector(G.gameWidth + cardImage:getWidth() + 10, gameMidY - cardImage:getHeight() / 2)
 
+
+    self.cardChangeTimer = 0
+    self.cardChangeTimerMax = 0.3
     -- cardImage:setFilter("nearest", "nearest")
 
-    self.cards = {
+    self.deck = Deck({
         Card({
             text = "Shoot",
             image = nil,
             callback = function() print("Used Shoot") end,
-        }, 1, self.cardPositions[1]),
+        }, self.cardPositions[1]),
         Card({
             text = "Shoot",
             image = nil,
             callback = function() print("Used Shoot") end,
-        }, 2, self.cardPositions[2]),
+        }, self.cardPositions[2]),
         Card({
             text = "Garlic",
             image = nil,
             callback = function() print("Used Garlic") end,
-        }, 3, self.cardPositions[3]),
+        }, self.cardPositions[3]),
         Card({
             text = "Block",
             image = nil,
             callback = function() print("Used Block") end,
-        }, 4, self.cardPositions[4]),
+        }, self.cardPositions[4]),
         Card({
             text = "Block",
             image = nil,
             callback = function() print("Used Block") end,
-        }, 5, self.cardPositions[5]),
-    }
-    -- table.insert(self.cards, {
-    --     sprite = cardImage,
-    --     text = "1",
-    --     position = 1,
-    --     visualPosition = self.cardPositions[1]:getCopy(),
-    -- })
-    -- table.insert(self.cards, {
-    --     sprite = cardImage,
-    --     text = "2",
-    --     position = 2,
-    --     visualPosition = self.cardPositions[2]:getCopy(),
-    -- })
-    -- table.insert(self.cards, {
-    --     sprite = cardImage,
-    --     text = "3",
-    --     position = 3,
-    --     visualPosition = self.cardPositions[3]:getCopy(),
-    -- })
-    -- table.insert(self.cards, {
-    --     sprite = cardImage,
-    --     text = "4",
-    --     position = 4,
-    --     visualPosition = self.cardPositions[4]:getCopy(),
-    -- })
-    -- table.insert(self.cards, {
-    --     sprite = cardImage,
-    --     text = "5",
-    --     position = 5,
-    --     visualPosition = self.cardPositions[5]:getCopy(),
-    -- })
+        }, self.cardPositions[5]),
+    })
+
+    self:updateCardPositions()
 
     -- self.circle = love.graphics.newImage("assets/sprites/playdate_circle.png")
     -- Set filtering to nearest so the pixels look good.
@@ -102,39 +97,60 @@ end
 function game:update(dt)
     self.input:update()
 
+
     if self.input:pressed("cardUp") then
-        for index, card in ipairs(self.cards) do
-            card.deckPosition = card.deckPosition - 1
-            if card.deckPosition == 0 then
-                card.deckPosition = #self.cardPositions
-            end
-        end
+        self.deck:rotateUp()
+        self.cardChangeTimer = self.cardChangeTimerMax
+        self:updateCardPositions()
     elseif self.input:pressed("cardDown") then
-        for _, card in ipairs(self.cards) do
-            card.deckPosition = card.deckPosition + 1
-            if card.deckPosition >= #self.cardPositions + 1 then
-                card.deckPosition = 1
-            end
+        self.deck:rotateDown()
+        self.cardChangeTimer = self.cardChangeTimerMax
+        self:updateCardPositions()
+    end
+
+    if self.input:pressed("useCard") then
+        local currentCard = self.deck:getTopCard()
+        currentCard:activate()
+    end
+    if self.cardChangeTimer >= 0 then
+        local t = 1 - (self.cardChangeTimer / self.cardChangeTimerMax)
+        local x
+        if t <= 0.0 then
+            x = 0.0
+        elseif t >= 1 then
+            x = 1.0
+        elseif t < 0.5 then
+            x = 2 ^ (20 * t - 10) / 2
+        else
+            x = (2 - 2 ^ (-20 * t + 10)) / 2
+        end
+        for _, card in ipairs(self.deck.cards) do
+            card.visualPosition = card.startVisualPosition + (card.position - card.startVisualPosition) * x
         end
     end
-    for _, card in ipairs(self.cards) do
-        if (card.visualPosition - self.cardPositions[card.deckPosition]):getLengthSquared() > 0.1 then
-            card.visualPosition = frameIndependentLerp(card.visualPosition, self.cardPositions[card.deckPosition], dt,
-                0.1)
-        end
-    end
+    self.cardChangeTimer = self.cardChangeTimer - dt
 end
 
 function game:draw()
-    local cardDrawOrder = { 5, 1, 4, 2, 3 }
+    local topCards = self.deck:get(5)
+
+    local cardDrawOrder = { 4, 5, 3, 2, 1 }
     for _, value in ipairs(cardDrawOrder) do
-        for _, card in ipairs(self.cards) do
-            if card.deckPosition == value then
-                card:draw()
-            end
+        if value <= #topCards then
+            topCards[value]:draw()
         end
     end
-    -- love.graphics.draw(self.circle, self.circleVector.x, self.circleVector.y)
+    -- for i, value in ipairs(cardDrawOrder) do
+    --     if value <= #topCards then
+    --        topCards[]
+    --     end
+    --     for _, card in ipairs(self.cards) do
+    --         if card.deckPosition == value then
+    --             card:draw()
+    --         end
+    --     end
+    -- end
+    love.graphics.draw(characterSprite, G.gameWidth / 2, G.gameHeight / 2)
 end
 
 return game

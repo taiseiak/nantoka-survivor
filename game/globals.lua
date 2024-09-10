@@ -2,7 +2,7 @@ local Scenery = require("libraries.scenery")
 
 G = {}
 G.debug = false
-G.gameWidth, G.gameHeight = 400, 240
+G.gameWidth, G.gameHeight = 320, 180
 G.currentTime = 0
 
 -- https://lospec.com/palette-list/playdate
