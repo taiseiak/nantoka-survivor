@@ -27,7 +27,7 @@ function game:load(args)
   self.imageX = gameMidX
   self.imageY = gameMidY
   -- 画像の移動速度
-  self.speed = 200
+  self.speed = 100
   -- HCワールドの初期化
   self.world = HC.new()
   -- playerのcolliderを設定ここでは一旦丸にする
@@ -62,8 +62,9 @@ function game:update(dt)
 
   -- enemy画像playerに向かってを移動
   for _, enemy in ipairs(self.enemies) do
-    local dirX = self.imageX - enemy.x
-    local dirY = self.imageY - enemy.y
+    local px, py = self.playerCollider:center()
+    local dirX = px - enemy.x
+    local dirY = py - enemy.y
     local len = math.sqrt(dirX * dirX + dirY * dirY)
     if len > 0 then
       enemy.x = enemy.x + (dirX / len) * enemy.speed * dt
@@ -83,24 +84,39 @@ end
 
 function game:resolveCollisions()
   for i, enemy1 in ipairs(self.enemies) do
-    for j = i + 1, #self.enemies do
-      local enemy2 = self.enemies[j]
-      if enemy1.collider:collidesWith(enemy2.collider) then
-        -- 重なっている方向を計算して離す
-        local overlap = enemy1.collider:collidesWith(enemy2.collider)
-        if overlap then
-          local dx, dy = overlap.normal.x * overlap.depth, overlap.normal.y * overlap.depth
-          -- 敵を分離させる (敵1と敵2を半分ずつ動かす)
-          enemy1.x = enemy1.x - dx / 2
-          enemy1.y = enemy1.y - dy / 2
-          enemy2.x = enemy2.x + dx / 2
-          enemy2.y = enemy2.y + dy / 2
-          -- コライダーも移動
-          enemy1.collider:moveTo(enemy1.x, enemy1.y)
-          enemy2.collider:moveTo(enemy2.x, enemy2.y)
-        end
+    local collisions = self.world:collisions(enemy1.collider)
+    for other, separating_vector in pairs(collisions) do
+      if self.playerCollider ~= other then
+        -- print("colliding with player")
+
+        enemy1.collider:move(separating_vector.x / 2, separating_vector.y / 2)
+        other:move(-separating_vector.x / 2, -separating_vector.y / 2)
+        enemy1.x, enemy1.y = enemy1.collider:center()
+        other.x, other.y = other:center()
       end
     end
+    -- for j = i + 1, #self.enemies do
+    --   local enemy2 = self.enemies[j]
+    --   if enemy1.collider:collidesWith(enemy2.collider) then
+    --     -- 重なっている方向を計算して離す
+    --     for shape, delta in pairs(self.world:collisions(enemy1.collider)) do
+    --       if shape == enemy2.collider then
+    --         -- デバッグメッセージを追加して、衝突が検出されたことを確認
+    --         print("Collision detected between enemies", i, "and", j)
+    --         print("Overlap dx:", delta.x, "dy:", delta.y)
+    --         local dx, dy = delta.x, delta.y
+    --         -- 敵を分離させる (敵1と敵2を半分ずつ動かす)
+    --         enemy1.x = enemy1.x - dx / 2
+    --         enemy1.y = enemy1.y - dy / 2
+    --         enemy2.x = enemy2.x + dx / 2
+    --         enemy2.y = enemy2.y + dy / 2
+    --         -- コライダーも移動
+    --         enemy1.collider:moveTo(enemy1.x, enemy1.y)
+    --         enemy2.collider:moveTo(enemy2.x, enemy2.y)
+    --       end
+    --     end
+    --   end
+    -- end
   end
 end
 
