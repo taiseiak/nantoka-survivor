@@ -26,14 +26,15 @@ function game:load(args)
     local cardImage = love.graphics.newImage("assets/sprites/nantoka-survivor-card.png")
 
     self.cardPositions = {
-        Vector(G.gameWidth - cardImage:getWidth() / 2 - 5, gameMidY - cardImage:getHeight() / 2 - 60),
-        Vector(G.gameWidth - cardImage:getWidth() / 2 - 18, gameMidY - cardImage:getHeight() / 2 - 35),
+        Vector(G.gameWidth - cardImage:getWidth() / 2 - 5, gameMidY - cardImage:getHeight() / 2 - 65),
+        Vector(G.gameWidth - cardImage:getWidth() / 2 - 18, gameMidY - cardImage:getHeight() / 2 - 42),
         Vector(G.gameWidth - cardImage:getWidth() / 2 - 35, gameMidY - cardImage:getHeight() / 2),
-        Vector(G.gameWidth - cardImage:getWidth() / 2 - 18, gameMidY - cardImage:getHeight() / 2 + 35),
-        Vector(G.gameWidth - cardImage:getWidth() / 2 - 5, gameMidY - cardImage:getHeight() / 2 + 60),
+        Vector(G.gameWidth - cardImage:getWidth() / 2 - 18, gameMidY - cardImage:getHeight() / 2 + 42),
+        Vector(G.gameWidth - cardImage:getWidth() / 2 - 5, gameMidY - cardImage:getHeight() / 2 + 65),
     }
 
-    cardImage:setFilter("nearest", "nearest")
+    -- cardImage:setFilter("nearest", "nearest")
+
     self.cards = {
         Card({
             text = "Shoot",
@@ -103,22 +104,23 @@ function game:update(dt)
 
     if self.input:pressed("cardUp") then
         for index, card in ipairs(self.cards) do
-            self.cardscard.position = card.position - 1
-            if card.position == 0 then
-                card.position = 5
+            card.deckPosition = card.deckPosition - 1
+            if card.deckPosition == 0 then
+                card.deckPosition = #self.cardPositions
             end
         end
     elseif self.input:pressed("cardDown") then
         for _, card in ipairs(self.cards) do
-            card.position = card.position + 1
-            if card.position >= #self.cardPositions + 1 then
-                card.position = 1
+            card.deckPosition = card.deckPosition + 1
+            if card.deckPosition >= #self.cardPositions + 1 then
+                card.deckPosition = 1
             end
         end
     end
     for _, card in ipairs(self.cards) do
-        if (card.visualPosition - self.cardPositions[card.position]):getLengthSquared() > 0.1 then
-            card.visualPosition = frameIndependentLerp(card.visualPosition, self.cardPositions[card.position], dt, 0.1)
+        if (card.visualPosition - self.cardPositions[card.deckPosition]):getLengthSquared() > 0.1 then
+            card.visualPosition = frameIndependentLerp(card.visualPosition, self.cardPositions[card.deckPosition], dt,
+                0.1)
         end
     end
 end
@@ -127,15 +129,12 @@ function game:draw()
     local cardDrawOrder = { 5, 1, 4, 2, 3 }
     for _, value in ipairs(cardDrawOrder) do
         for _, card in ipairs(self.cards) do
-            if card["position"] == value then
-                love.graphics.draw(card.sprite, card.visualPosition.x, card.visualPosition.y)
-                love.graphics.setColor(G.palette[1])
-                love.graphics.print(card.text, card.visualPosition.x + 10, card.visualPosition.y + 10)
-                love.graphics.setColor(1, 1, 1, 1)
+            if card.deckPosition == value then
+                card:draw()
             end
         end
     end
-    love.graphics.draw(self.circle, self.circleVector.x, self.circleVector.y)
+    -- love.graphics.draw(self.circle, self.circleVector.x, self.circleVector.y)
 end
 
 return game
