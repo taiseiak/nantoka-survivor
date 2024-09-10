@@ -2,6 +2,7 @@ local Text = require("libraries.slog-text")
 local Push = require("libraries.push")
 local Baton = require("libraries.baton")
 local HC = require("libraries.HC")
+-- local vector = require("libraries.HC.vector")
 
 local game = {}
 
@@ -31,7 +32,7 @@ function game:load(args)
   -- HCワールドの初期化
   self.world = HC.new()
   -- playerのcolliderを設定ここでは一旦丸にする
-  self.playerCollider = self.world:circle(self.imageX, self.imageY, self.image:getWidth() / 2)
+  self.playerCollider = self.world:circle(gameMidX, gameMidY, self.image:getWidth() / 2)
   -- 敵の設定
   self.enemies = {}
   self.spawnTimer = 0
@@ -46,13 +47,16 @@ function game:update(dt)
   local x, y = input:get "move"
 
   -- player画像をその方向に移動
-  self.imageX = self.imageX + x * self.speed * dt
-  self.imageY = self.imageY + y * self.speed * dt
+  local px, py = self.playerCollider:center()
+  px = px + x * self.speed * dt
+  py = py + y * self.speed * dt
 
   -- プレイヤーがゲーム画面の外に出ないようにする
-  self.imageX = math.max(self.image:getWidth() / 2, math.min(self.imageX, G.gameWidth - self.image:getWidth() / 2))
-  self.imageY = math.max(self.image:getHeight() / 2, math.min(self.imageY, G.gameHeight - self.image:getHeight() / 2))
+  px = math.max(self.image:getWidth() / 2, math.min(px, G.gameWidth - self.image:getWidth() / 2))
+  py = math.max(self.image:getHeight() / 2, math.min(py, G.gameHeight - self.image:getHeight() / 2))
 
+  --  playerColliderの位置を更新
+  self.playerCollider:moveTo(px, py)
   -- 敵の生成のタイミング
   self.spawnTimer = self.spawnTimer + dt
   if self.spawnTimer >= self.spawnInterval then
@@ -63,15 +67,15 @@ function game:update(dt)
   -- enemy画像playerに向かってを移動
   for _, enemy in ipairs(self.enemies) do
     local px, py = self.playerCollider:center()
-    local dirX = px - enemy.x
-    local dirY = py - enemy.y
+    local ex, ey = enemy.collider:center()
+    local dirX = px - ex
+    local dirY = py - ey
     local len = math.sqrt(dirX * dirX + dirY * dirY)
     if len > 0 then
-      enemy.x = enemy.x + (dirX / len) * enemy.speed * dt
-      enemy.y = enemy.y + (dirY / len) * enemy.speed * dt
+      ex = ex + (dirX / len) * enemy.speed * dt
+      ey = ey + (dirY / len) * enemy.speed * dt
+      enemy.collider:moveTo(ex, ey)
     end
-    -- 敵のColliderの位置の更新
-    enemy.collider:moveTo(enemy.x, enemy.y)
   end
   -- for _, enemy in ipairs(self.enemies) do
   --   if self.playerCollider:collidesWith(enemy.collider) then
@@ -95,42 +99,22 @@ function game:resolveCollisions()
         other.x, other.y = other:center()
       end
     end
-    -- for j = i + 1, #self.enemies do
-    --   local enemy2 = self.enemies[j]
-    --   if enemy1.collider:collidesWith(enemy2.collider) then
-    --     -- 重なっている方向を計算して離す
-    --     for shape, delta in pairs(self.world:collisions(enemy1.collider)) do
-    --       if shape == enemy2.collider then
-    --         -- デバッグメッセージを追加して、衝突が検出されたことを確認
-    --         print("Collision detected between enemies", i, "and", j)
-    --         print("Overlap dx:", delta.x, "dy:", delta.y)
-    --         local dx, dy = delta.x, delta.y
-    --         -- 敵を分離させる (敵1と敵2を半分ずつ動かす)
-    --         enemy1.x = enemy1.x - dx / 2
-    --         enemy1.y = enemy1.y - dy / 2
-    --         enemy2.x = enemy2.x + dx / 2
-    --         enemy2.y = enemy2.y + dy / 2
-    --         -- コライダーも移動
-    --         enemy1.collider:moveTo(enemy1.x, enemy1.y)
-    --         enemy2.collider:moveTo(enemy2.x, enemy2.y)
-    --       end
-    --     end
-    --   end
-    -- end
   end
 end
 
 function game:draw()
   -- player描画
+  local px, py = self.playerCollider:center()
   local imageWidth = self.image:getWidth()
   local imageHeight = self.image:getHeight()
-  love.graphics.draw(self.image, self.imageX - imageWidth / 2, self.imageY - imageHeight / 2)
+  love.graphics.draw(self.image, px - imageWidth / 2, py - imageHeight / 2)
 
   -- enemy描画
   for _, enemy in ipairs(self.enemies) do
+    local ex, ey = enemy.collider:center()
     local enemyWidth = enemy.image:getWidth()
     local enemyHeight = enemy.image:getHeight()
-    love.graphics.draw(enemy.image, enemy.x - enemyWidth / 2, enemy.y - enemyHeight / 2)
+    love.graphics.draw(enemy.image, ex - enemyWidth / 2, ey - enemyHeight / 2)
   end
 end
 
@@ -144,26 +128,27 @@ function game:spawnEnemy()
     speed = 100
   }
   -- コライダーを作成して設定する
-  enemy.collider = self.world:circle(enemy.x, enemy.y, radius)
-  table.insert(self.enemies, enemy)
+  -- enemy.collider = self.world:circle(enemy.x, enemy.y, radius)
+  -- table.insert(self.enemies, enemy)
   -- enemyを画面外からランダムで出現
   local side = math.random(1, 4) -- 1: 上, 2: 下, 3: 左, 4: 右
+  local x, y
   if side == 1 then
     -- 上側に出現
-    enemy.x = math.random(0, G.gameWidth)
-    enemy.y = -radius
+    x = math.random(0, G.gameWidth)
+    y = -radius
   elseif side == 2 then
     -- 下側に出現
-    enemy.x = math.random(0, G.gameWidth)
-    enemy.y = G.gameHeight + radius -- 画面の下外側
+    x = math.random(0, G.gameWidth)
+    y = G.gameHeight + radius -- 画面の下外側
   elseif side == 3 then
     -- 左側に出現
-    enemy.x = -radius -- 画面の左外側
-    enemy.y = math.random(0, G.gameHeight)
+    x = -radius -- 画面の左外側
+    y = math.random(0, G.gameHeight)
   elseif side == 4 then
     -- 右側に出現
-    enemy.x = G.gameWidth + radius -- 画面の右外側
-    enemy.y = math.random(0, G.gameHeight)
+    x = G.gameWidth + radius -- 画面の右外側
+    y = math.random(0, G.gameHeight)
   end
 
   -- 衝突しない位置を探す
@@ -173,7 +158,7 @@ function game:spawnEnemy()
 
   while not validPosition and attempts < maxAttempts do
     local overlapping = false
-    local newCollider = self.world:circle(enemy.x, enemy.y, radius)
+    local newCollider = self.world:circle(x, y, radius)
     for _, otherEnemy in ipairs(self.enemies) do
       if newCollider:collidesWith(otherEnemy.collider) then
         overlapping = true
@@ -187,8 +172,8 @@ function game:spawnEnemy()
       table.insert(self.enemies, enemy)
     else
       -- 新しい位置を設定
-      enemy.x = math.random(0, G.gameWidth)
-      enemy.y = math.random(0, G.gameHeight)
+      x = math.random(0, G.gameWidth)
+      y = math.random(0, G.gameHeight)
       attempts = attempts + 1
     end
   end
