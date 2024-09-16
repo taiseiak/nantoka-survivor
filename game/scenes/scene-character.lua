@@ -15,6 +15,7 @@ local input = Baton.new {
     right = { 'key:right' },
     up = { 'key:up' },
     down = { 'key:down' },
+    reset = { 'key:r' },
     -- action = {'key:x', 'button:a'},
   },
   pairs = {
@@ -38,10 +39,29 @@ function game:load(args)
   self.spawnTimer = 0
   --  何秒間かに一体敵を生成
   self.spawnInterval = 3
+  -- プレイヤーのライフの追加
+  self.playerLives = 3
+  -- 無敵時間を追加（連続してダメージを受けないようにするため）
+  self.invincibleTime = 0
+  self.invincibleDuration = 2 -- 2秒間の無敵時間
+  -- ゲームオーバーフラグ
+  self.gameOver = false
 end
 
 function game:update(dt)
   input:update()
+  if self.gameOver then
+    -- ゲームオーバー時の処理（例：リスタートのための入力待ち）
+    if input:pressed('reset') then -- 'reset'ボタンでリスタート
+      self:reset()
+    end
+    return
+  end
+
+  -- 無敵時間を更新
+  if self.invincibleTime > 0 then
+    self.invincibleTime = self.invincibleTime - dt
+  end
 
   -- 入力で方向を取得
   local moveVec = vector(input:get "move")
@@ -70,6 +90,9 @@ function game:update(dt)
     enemyPos = enemyPos + dirVec * enemy.speed * dt
     enemy.collider:moveTo(enemyPos:unpack())
   end
+  -- プレイヤーと敵の衝突チェック
+  self:checkPlayerEnemyCollision()
+
   self:resolveCollisions()
 end
 
@@ -87,16 +110,61 @@ function game:resolveCollisions()
   end
 end
 
+function game:checkPlayerEnemyCollision()
+  if self.invincibleTime <= 0 then
+    for _, enemy in ipairs(self.enemies) do
+      if self.playerCollider:collidesWith(enemy.collider) then
+        self.playerLives = self.playerLives - 1
+        self.invincibleTime = self.invincibleDuration
+
+        if self.playerLives <= 0 then
+          self.gameOver = true
+        end
+
+        break -- 1回の衝突で1ライフだけ減らす
+      end
+    end
+  end
+end
+
 function game:draw()
+  if self.gameOver then
+    -- ゲームオーバー画面の描画
+    love.graphics.setColor(1, 0, 0)
+    love.graphics.printf("GAME OVER", 0, G.gameHeight / 2 - 20, G.gameWidth, "center")
+    love.graphics.printf("Press R to Restart", 0, G.gameHeight / 2 + 20, G.gameWidth, "center")
+    love.graphics.setColor(1, 1, 1)
+    return
+  end
+  -- プレイヤーのライフを表示
+  love.graphics.print("Lives: " .. self.playerLives, 10, 10)
+
+  -- 無敵時間中はプレイヤーを点滅させる
+  if self.invincibleTime > 0 and math.floor(self.invincibleTime * 10) % 2 == 0 then
+    love.graphics.setColor(1, 1, 1, 0.5)
+  end
   -- player描画
   local px, py = self.playerCollider:center()
   love.graphics.draw(self.image, px - self.image:getWidth() / 2, py - self.image:getHeight() / 2)
+  love.graphics.setColor(1, 1, 1, 1)
 
   -- enemy描画
   for _, enemy in ipairs(self.enemies) do
     local ex, ey = enemy.collider:center()
     love.graphics.draw(enemy.image, ex - enemy.image:getWidth() / 2, ey - enemy.image:getHeight() / 2)
   end
+end
+
+function game:reset()
+  -- ゲームをリセットする関数
+  self.playerLives = 3
+  self.invincibleTime = 0
+  self.gameOver = false
+  self.enemies = {}
+  self.spawnTimer = 0
+  -- プレイヤーの位置をリセット
+  self.playerCollider:moveTo(gameMidX, gameMidY)
+  -- その他の初期化処理
 end
 
 -- ランダムな方向のベクトルを生成する関数を追加
