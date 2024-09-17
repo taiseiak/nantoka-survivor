@@ -58,6 +58,22 @@ function game:update(dt)
     return
   end
 
+  local collisions =
+      self.world:collisions(self.playerCollider)
+  for other, separating_vector in pairs(collisions) do
+    if other and other.tag == "Enemy" then
+      -- self:OnTriggerEnter(other)
+      if self.invincibleTime <= 0 then
+        self.playerLives = self.playerLives - 1
+        self.invincibleTime = self.invincibleDuration
+        if self.playerLives <= 0 then
+          self.gameOver = true
+        end
+      end
+      -- 敵を削除
+      self:removeEnemy(other)
+    end
+  end
   -- 無敵時間を更新
   if self.invincibleTime > 0 then
     self.invincibleTime = self.invincibleTime - dt
@@ -173,12 +189,36 @@ end
 --   return vector(math.cos(angle), math.sin(angle))
 -- end
 
+-- function game:OnTriggerEnter(other)
+--   if other and other.tag == "Enemy" then
+--     --敵を消す
+--     for i, enemy in ipairs(self.enemies) do
+--       if enemy.collider == other.collider then
+--         self.world:remove(other.collider)
+--         table.remove(self.enemies, i)
+--         break
+--       end
+--     end
+--   end
+-- end
+
+-- 敵を削除する新しい関数
+function game:removeEnemy(enemyCollider)
+  for i, enemy in ipairs(self.enemies) do
+    if enemy.collider == enemyCollider then
+      self.world:remove(enemyCollider)
+      table.remove(self.enemies, i)
+      break
+    end
+  end
+end
+
 -- 新しく敵を生成する関数
 function game:spawnEnemy()
   local radius = self.image:getWidth() / 2 -- プレイヤーの半径を使用
   local enemy = {
     image = love.graphics.newImage("assets/sprites/playdate_circle.png"),
-    speed = 100
+    speed = 70
   }
 
   -- enemyを画面外からランダムで出現
@@ -186,6 +226,7 @@ function game:spawnEnemy()
   spawnPos = spawnPos + vector(G.gameWidth / 2, G.gameHeight / 2)
 
   enemy.collider = self.world:circle(spawnPos.x, spawnPos.y, radius)
+  enemy.collider.tag = "Enemy"
 
   -- 衝突しない位置を探す
   local maxAttempts = 10
