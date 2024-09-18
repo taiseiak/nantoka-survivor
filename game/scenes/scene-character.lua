@@ -25,6 +25,13 @@ function game:load(args)
   -- 画像の読み込み
   self.image = love.graphics.newImage(
     "assets/sprites/playdate_circle.png")
+  -- 音声ファイルの読み込み
+  self.sounds = {
+    enemyHit = love.audio.newSource("assets/sounds/enemyHit.wav", "static"),
+    gameOver = love.audio.newSource("assets/sounds/gameOver.wav", "static"),
+    shoot = love.audio.newSource("assets/sounds/shoot.wav", "static"),
+    bulletHit = love.audio.newSource("assets/sounds/bulletHit.wav", "static")
+  }
   -- 画像の初期位置
   self.imageX = gameMidX
   self.imageY = gameMidY
@@ -87,6 +94,7 @@ function game:update(dt)
           self:removeEnemy(enemy.collider)
           self.world:remove(bullet.collider)
           table.remove(self.bullets, i)
+          self.sounds.bulletHit:play()
           break
         end
       end
@@ -167,9 +175,11 @@ function game:checkPlayerEnemyCollision()
       if self.playerCollider:collidesWith(enemy.collider) then
         self.playerLives = self.playerLives - 1
         self.invincibleTime = self.invincibleDuration
+        self.sounds.enemyHit:play()
 
         if self.playerLives <= 0 then
           self.gameOver = true
+          self.sounds.gameOver:play()
         end
 
         break -- 1回の衝突で1ライフだけ減らす
@@ -222,6 +232,7 @@ function game:shootBullet()
   bullet.collider.tag = "Bullet"
 
   table.insert(self.bullets, bullet)
+  self.sounds.shoot:play()
 end
 
 -- ゲームをリセットする関数
