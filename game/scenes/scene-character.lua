@@ -46,6 +46,12 @@ function game:load(args)
   self.invincibleDuration = 2 -- 2秒間の無敵時間
   -- ゲームオーバーフラグ
   self.gameOver = false
+  self.bullets = {}
+  self.bulletsSpeed = 300
+  self.bulletsImage = love.graphics.newImage("assets/sprites/playdate_circle.png")
+  self.bulletsRadius = self.bulletsImage:getWidth() / 2
+  self.shootCooldown = 0
+  self.shootCooldownTime = 0.2
 end
 
 function game:update(dt)
@@ -56,6 +62,36 @@ function game:update(dt)
       self:reset()
     end
     return
+  end
+
+  -- 弾丸の発射
+  self.shootCooldown = self.shootCooldown - dt
+  if love.mouse.isDown(1) and self.shootCooldown <= 0 then
+    self:shootBullet()
+    self.shootCooldown = self.shootCooldownTime
+  end
+
+  -- 弾丸の更新,でもここもコライダーを動かしてからのほうがいいかも
+  for i = #self.bullets, 1, -1 do
+    local bullet = self.bullets[i]
+    bullet.x = bullet.x + bullet.dx * dt
+    bullet.y = bullet.y + bullet.dy * dt
+    bullet.collider:moveTo(bullet.x, bullet.y)
+    -- 画面外に出た弾丸の削除
+    if bullet.x < 0 or bullet.x > G.gameWidth or bullet.y < 0 or bullet.y > G.gameHeight then
+      self.world:remove(bullet.collider)
+      table.remove(self.bullets, i)
+    else
+      -- 弾丸と敵との衝突判定
+      for j, enemy in ipairs(self.enemies) do
+        if bullet.collider:collidesWith(enemy.collider) then
+          self:removeEnemy(enemy.collider)
+          self.world:remove(bullet.collider)
+          table.remove(self.bullets, i)
+          break
+        end
+      end
+    end
   end
 
   local collisions =
@@ -152,9 +188,12 @@ function game:draw()
     love.graphics.setColor(1, 1, 1)
     return
   end
+  -- 弾丸の描画
+  for _, bullet in ipairs(self.bullets) do
+    love.graphics.draw(self.bulletsImage, bullet.x - self.bulletsRadius, bullet.y - self.bulletsRadius)
+  end
   -- プレイヤーのライフを表示
   love.graphics.print("Lives: " .. self.playerLives, 10, 10)
-
   -- 無敵時間中はプレイヤーを点滅させる
   if self.invincibleTime > 0 and math.floor(self.invincibleTime * 10) % 2 == 0 then
     love.graphics.setColor(1, 1, 1, 0.5)
@@ -171,8 +210,32 @@ function game:draw()
   end
 end
 
+function game:shootBullet()
+  local px, py = self.playerCollider:center()
+  local mx, my = love.mouse.getPosition()
+  local dx, dy = mx - px, my - py
+  local angle = math.atan(dy / dx)
+  -- 象限の調整
+  if dx < 0 then
+    angle = angle + math.pi
+  elseif dx > 0 and dy < 0 then
+    angle = angle + 2 * math.pi
+  end
+
+  local bullet = {
+    x = px,
+    y = py,
+    dx = math.cos(angle) * self.bulletsSpeed,
+    dy = math.sin(angle) * self.bulletsSpeed,
+    collider = self.world:circle(px, py, self.bulletsRadius)
+  }
+  bullet.collider.tag = "Bullet"
+
+  table.insert(self.bullets, bullet)
+end
+
+-- ゲームをリセットする関数
 function game:reset()
-  -- ゲームをリセットする関数
   self.playerLives = 3
   self.invincibleTime = 0
   self.gameOver = false
@@ -181,26 +244,13 @@ function game:reset()
   -- プレイヤーの位置をリセット
   self.playerCollider:moveTo(gameMidX, gameMidY)
   -- その他の初期化処理
+  -- 弾丸をリセット
+  for _, bullet in ipairs(self.bullets) do
+    self.world:remove(bullet.collider)
+  end
+  self.bullets = {}
+  self.shootCooldown = 0
 end
-
--- ランダムな方向のベクトルを生成する関数を追加
--- local function random()
---   local angle = love.math.random() * 2 * math.pi
---   return vector(math.cos(angle), math.sin(angle))
--- end
-
--- function game:OnTriggerEnter(other)
---   if other and other.tag == "Enemy" then
---     --敵を消す
---     for i, enemy in ipairs(self.enemies) do
---       if enemy.collider == other.collider then
---         self.world:remove(other.collider)
---         table.remove(self.enemies, i)
---         break
---       end
---     end
---   end
--- end
 
 -- 敵を削除する新しい関数
 function game:removeEnemy(enemyCollider)
