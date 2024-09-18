@@ -74,11 +74,10 @@ function game:update(dt)
   -- 弾丸の更新,でもここもコライダーを動かしてからのほうがいいかも
   for i = #self.bullets, 1, -1 do
     local bullet = self.bullets[i]
-    bullet.x = bullet.x + bullet.dx * dt
-    bullet.y = bullet.y + bullet.dy * dt
-    bullet.collider:moveTo(bullet.x, bullet.y)
+    bullet.pos = bullet.pos + bullet.vel * dt
+    bullet.collider:moveTo(bullet.pos.x, bullet.pos.y)
     -- 画面外に出た弾丸の削除
-    if bullet.x < 0 or bullet.x > G.gameWidth or bullet.y < 0 or bullet.y > G.gameHeight then
+    if bullet.pos.x < 0 or bullet.pos.x > G.gameWidth or bullet.pos.y < 0 or bullet.pos.y > G.gameHeight then
       self.world:remove(bullet.collider)
       table.remove(self.bullets, i)
     else
@@ -190,7 +189,7 @@ function game:draw()
   end
   -- 弾丸の描画
   for _, bullet in ipairs(self.bullets) do
-    love.graphics.draw(self.bulletsImage, bullet.x - self.bulletsRadius, bullet.y - self.bulletsRadius)
+    love.graphics.draw(self.bulletsImage, bullet.pos.x - self.bulletsRadius, bullet.pos.y - self.bulletsRadius)
   end
   -- プレイヤーのライフを表示
   love.graphics.print("Lives: " .. self.playerLives, 10, 10)
@@ -211,23 +210,14 @@ function game:draw()
 end
 
 function game:shootBullet()
-  local px, py = self.playerCollider:center()
-  local mx, my = love.mouse.getPosition()
-  local dx, dy = mx - px, my - py
-  local angle = math.atan(dy / dx)
-  -- 象限の調整
-  if dx < 0 then
-    angle = angle + math.pi
-  elseif dx > 0 and dy < 0 then
-    angle = angle + 2 * math.pi
-  end
-
+  local playerPos = vector(self.playerCollider:center())
+  local mousePos = vector(love.mouse.getPosition())
+  -- プレイヤーからマウスの方向ベクトルの計算
+  local direction = (mousePos - playerPos):norm()
   local bullet = {
-    x = px,
-    y = py,
-    dx = math.cos(angle) * self.bulletsSpeed,
-    dy = math.sin(angle) * self.bulletsSpeed,
-    collider = self.world:circle(px, py, self.bulletsRadius)
+    pos = playerPos:clone(),
+    vel = direction * self.bulletsSpeed,
+    collider = self.world:circle(playerPos.x, playerPos.y, self.bulletsRadius)
   }
   bullet.collider.tag = "Bullet"
 
