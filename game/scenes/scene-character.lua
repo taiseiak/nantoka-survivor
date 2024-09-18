@@ -175,11 +175,13 @@ function game:checkPlayerEnemyCollision()
       if self.playerCollider:collidesWith(enemy.collider) then
         self.playerLives = self.playerLives - 1
         self.invincibleTime = self.invincibleDuration
-        self.sounds.enemyHit:play()
 
         if self.playerLives <= 0 then
           self.gameOver = true
+          self.sounds.enemyHit:stop()
           self.sounds.gameOver:play()
+        else
+          self.sounds.enemyHit:play()
         end
 
         break -- 1回の衝突で1ライフだけ減らす
