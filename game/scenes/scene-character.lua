@@ -56,9 +56,13 @@ function game:load(args)
   self.bullets = {}
   self.bulletsSpeed = 300
   self.bulletsImage = love.graphics.newImage("assets/sprites/playdate_circle.png")
-  self.bulletsRadius = self.bulletsImage:getWidth() / 2
+  self.bulletsRadius = self.bulletsImage:getWidth() / 4
   self.shootCooldown = 0
   self.shootCooldownTime = 0.2
+  self.coinImage = love.graphics.newImage("assets/sprites/playdate_circle.png")
+  self.coinRadius = self.coinImage:getWidth() / 4
+  self.coins = {}
+  self.score = 0
 end
 
 function game:update(dt)
@@ -71,6 +75,15 @@ function game:update(dt)
     return
   end
 
+  -- コインの収集
+  for i = #self.coins, 1, -1 do
+    local coin = self.coins[i]
+    if self.playerCollider:collidesWith(coin.collider) then
+      self.score = self.score + 1
+      self.world:remove(coin.collider)
+      table.remove(self.coins, i)
+    end
+  end
   -- 弾丸の発射
   self.shootCooldown = self.shootCooldown - dt
   if love.mouse.isDown(1) and self.shootCooldown <= 0 then
@@ -78,7 +91,7 @@ function game:update(dt)
     self.shootCooldown = self.shootCooldownTime
   end
 
-  -- 弾丸の更新,でもここもコライダーを動かしてからのほうがいいかも
+  -- 弾丸の更新
   for i = #self.bullets, 1, -1 do
     local bullet = self.bullets[i]
     bullet.pos = bullet.pos + bullet.vel * dt
@@ -91,7 +104,7 @@ function game:update(dt)
       -- 弾丸と敵との衝突判定
       for j, enemy in ipairs(self.enemies) do
         if bullet.collider:collidesWith(enemy.collider) then
-          self:removeEnemy(enemy.collider)
+          self:removeEnemy(enemy.collider, "bulletHit")
           self.world:remove(bullet.collider)
           table.remove(self.bullets, i)
           self.sounds.bulletHit:play()
@@ -173,6 +186,7 @@ function game:checkPlayerEnemyCollision()
   if self.invincibleTime <= 0 then
     for _, enemy in ipairs(self.enemies) do
       if self.playerCollider:collidesWith(enemy.collider) then
+        self:removeEnemy(enemy.collider, "playerCollison")
         self.playerLives = self.playerLives - 1
         self.invincibleTime = self.invincibleDuration
 
@@ -199,9 +213,17 @@ function game:draw()
     love.graphics.setColor(1, 1, 1)
     return
   end
+  -- コインの描画
+  for _, coin in ipairs(self.coins) do
+    local cx, cy = coin.collider:center()
+    love.graphics.draw(self.coinImage, cx - self.coinRadius, cy - self.coinRadius, 0, 0.5, 0.5)
+  end
+  -- スコアの表示
+  love.graphics.print("¥:" .. self.score, 10, 30)
   -- 弾丸の描画
   for _, bullet in ipairs(self.bullets) do
-    love.graphics.draw(self.bulletsImage, bullet.pos.x - self.bulletsRadius, bullet.pos.y - self.bulletsRadius)
+    love.graphics.draw(self.bulletsImage, bullet.pos.x - self.bulletsRadius, bullet.pos.y - self.bulletsRadius, 0, 0.5,
+      0.5)
   end
   -- プレイヤーのライフを表示
   love.graphics.print("Lives: " .. self.playerLives, 10, 10)
@@ -219,6 +241,17 @@ function game:draw()
     local ex, ey = enemy.collider:center()
     love.graphics.draw(enemy.image, ex - enemy.image:getWidth() / 2, ey - enemy.image:getHeight() / 2)
   end
+end
+
+-- コインを生成する
+function game:spawnCoin(x, y)
+  local coin = {
+    x = x,
+    y = y,
+    collider = self.world:circle(x, y, self.coinRadius)
+  }
+  coin.collider.tag = "Coin"
+  table.insert(self.coins, coin)
 end
 
 function game:shootBullet()
@@ -253,12 +286,22 @@ function game:reset()
   end
   self.bullets = {}
   self.shootCooldown = 0
+  for _, coin in ipairs(self.coins) do
+    self.world:remove(coin.collider)
+  end
+  self.coins = {}
+  self.score = 0
 end
 
--- 敵を削除する新しい関数
-function game:removeEnemy(enemyCollider)
+-- 敵を削除する新しい関数でコインもここで落とす
+function game:removeEnemy(enemyCollider, reason)
   for i, enemy in ipairs(self.enemies) do
     if enemy.collider == enemyCollider then
+      local ex, ey = enemy.collider:center()
+      if reason ~= "playerCollison" then
+        self:spawnCoin(ex, ey)
+      end
+
       self.world:remove(enemyCollider)
       table.remove(self.enemies, i)
       break
