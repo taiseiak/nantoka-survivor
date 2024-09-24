@@ -16,6 +16,7 @@ local input = Baton.new {
     up = { 'key:up' },
     down = { 'key:down' },
     reset = { 'key:r' },
+    shoot = { 'key:space' }
     -- action = {'key:x', 'button:a'},
   },
   pairs = {
@@ -36,6 +37,12 @@ function game:load(args)
   -- 画像の初期位置
   self.imageX = gameMidX
   self.imageY = gameMidY
+  -- 最初のプレイヤーの移動速度
+  self.baseSpeed = 100
+  -- コイン一枚の減速率
+  self.speedReductionRate = 0.99
+  -- 今の速度の最初
+  self.currentSpeed = self.baseSpeed
   -- 画像の移動速度
   self.speed = 100
   -- HCワールドの初期化
@@ -54,16 +61,18 @@ function game:load(args)
   self.invincibleDuration = 2 -- 2秒間の無敵時間
   -- ゲームオーバーフラグ
   self.gameOver = false
+  -- 弾丸の初期設定
   self.bullets = {}
   self.bulletsSpeed = 300
   self.bulletsImage = love.graphics.newImage("assets/sprites/playdate_circle.png")
   self.bulletsRadius = self.bulletsImage:getWidth() / 4
   self.shootCooldown = 0
   self.shootCooldownTime = 0.2
+  -- コインの初期設定
   self.coinImage = love.graphics.newImage("assets/sprites/playdate_circle.png")
   self.coinRadius = self.coinImage:getWidth() / 4
   self.coins = {}
-  self.score = 0
+  self.score = 4
 end
 
 function game:update(dt)
@@ -80,15 +89,21 @@ function game:update(dt)
   for i = #self.coins, 1, -1 do
     local coin = self.coins[i]
     if self.playerCollider:collidesWith(coin.collider) then
-      self.score = self.score + 1
+      self.score = self.score + 2
       self.world:remove(coin.collider)
       table.remove(self.coins, i)
       self.sounds.coin:play()
+      -- 速度を減少させる
+      self.currentSpeed = self.currentSpeed * self.speedReductionRate
+      -- 最低速度の設定
+      self.currentSpeed = math.max(self.currentSpeed, self.baseSpeed * 0.2)
     end
   end
   -- 弾丸の発射
   self.shootCooldown = self.shootCooldown - dt
-  if love.mouse.isDown(1) and self.shootCooldown <= 0 then
+  if input:pressed('shoot') and self.shootCooldown <= 0 and self.score > 0 then
+    print("shootCooldownTime")
+    self.score = self.score - 1
     self:shootBullet()
     self.shootCooldown = self.shootCooldownTime
   end
@@ -141,7 +156,7 @@ function game:update(dt)
   local moveVec = vector(input:get "move")
   local playerPos = vector(self.playerCollider:center())
   -- player画像をその方向に移動
-  playerPos = playerPos + moveVec * self.speed * dt
+  playerPos = playerPos + moveVec * self.currentSpeed * dt
 
   -- プレイヤーがゲーム画面の外に出ないようにする
   local radius = self.image:getWidth() / 2
@@ -215,13 +230,15 @@ function game:draw()
     love.graphics.setColor(1, 1, 1)
     return
   end
+  -- 移動速度の描画
+  love.graphics.print("Speed:" .. math.floor(self.currentSpeed), 10, 50)
   -- コインの描画
   for _, coin in ipairs(self.coins) do
     local cx, cy = coin.collider:center()
     love.graphics.draw(self.coinImage, cx - self.coinRadius, cy - self.coinRadius, 0, 0.5, 0.5)
   end
   -- スコアの表示
-  love.graphics.print("¥:" .. self.score, 10, 30)
+  love.graphics.print("¥:" .. self.score * 10, 10, 30)
   -- 弾丸の描画
   for _, bullet in ipairs(self.bullets) do
     love.graphics.draw(self.bulletsImage, bullet.pos.x - self.bulletsRadius, bullet.pos.y - self.bulletsRadius, 0, 0.5,
@@ -258,18 +275,37 @@ end
 
 function game:shootBullet()
   local playerPos = vector(self.playerCollider:center())
-  local mousePos = vector(love.mouse.getPosition())
+  local nearestEnemy = self:findNearestEnemy(playerPos)
   -- プレイヤーからマウスの方向ベクトルの計算
-  local direction = (mousePos - playerPos):norm()
-  local bullet = {
-    pos = playerPos:clone(),
-    vel = direction * self.bulletsSpeed,
-    collider = self.world:circle(playerPos.x, playerPos.y, self.bulletsRadius)
-  }
-  bullet.collider.tag = "Bullet"
+  if nearestEnemy then
+    local enemyPos = vector(nearestEnemy.collider:center())
+    local direction = (enemyPos - playerPos):norm()
+    local bullet = {
+      pos = playerPos:clone(),
+      vel = direction * self.bulletsSpeed,
+      collider = self.world:circle(playerPos.x, playerPos.y, self.bulletsRadius)
+    }
+    bullet.collider.tag = "Bullet"
+    table.insert(self.bullets, bullet)
+    self.sounds.shoot:play()
+  end
+end
 
-  table.insert(self.bullets, bullet)
-  self.sounds.shoot:play()
+function game:findNearestEnemy(position)
+  local nearestEnemy = nil
+  local minDistance = math.huge
+  for _, enemy in ipairs(self.enemies) do
+    local enemyPos = vector(enemy.collider:center())
+    local distanceVec = enemyPos - position
+    if distanceVec then
+      local distance = distanceVec:getmag()
+      if distance < minDistance then
+        minDistance = distance
+        nearestEnemy = enemy
+      end
+    end
+  end
+  return nearestEnemy
 end
 
 -- ゲームをリセットする関数
@@ -279,6 +315,7 @@ function game:reset()
   self.gameOver = false
   self.enemies = {}
   self.spawnTimer = 0
+  self.currentSpeed = self.baseSpeed
   -- プレイヤーの位置をリセット
   self.playerCollider:moveTo(gameMidX, gameMidY)
   -- その他の初期化処理
@@ -292,7 +329,7 @@ function game:reset()
     self.world:remove(coin.collider)
   end
   self.coins = {}
-  self.score = 0
+  self.score = 4
 end
 
 -- 敵を削除する新しい関数でコインもここで落とす

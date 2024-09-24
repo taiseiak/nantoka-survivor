@@ -1,10 +1,19 @@
 local Text = require("libraries.slog-text")
 local Push = require("libraries.push")
+local Baton = require("libraries.baton")
+local sceneCharacter = require("scenes.scene-character")
 
 local startScreen = {}
 
 local startScreenMidX = G.gameWidth / 2
 local startScreenMidY = G.gameHeight / 2
+
+local input = Baton.new {
+  controls = {
+    start = { 'key:space' }
+    -- action = {'key:x', 'button:a'},
+  },
+}
 
 function startScreen:load(args)
   self.titleText = Text.new("center", {
@@ -20,6 +29,11 @@ function startScreen:load(args)
 end
 
 function startScreen:update(dt)
+  input:update()
+  if input:pressed("start") then
+    self.setScene("loadingScene", { next = "scene-character" })
+  end
+
   self.titleText:update(dt)
   self.subTitleText:update(dt)
 end

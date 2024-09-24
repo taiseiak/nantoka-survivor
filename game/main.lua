@@ -3,15 +3,15 @@ require("globals")
 
 local Text = require("libraries.slog-text")
 local Push = require("libraries.push")
-local Baton = require("libraries.baton")
+-- local Baton = require("libraries.baton")
 
-local input = Baton.new {
-  controls = {
-    change = { 'key:space' },
-    -- action = {'key:x', 'button:a'},
-  },
-}
-local gameState = "start"
+-- local input = Baton.new {
+--   controls = {
+--     change = { 'key:space' },
+--     -- action = {'key:x', 'button:a'},
+--   },
+-- }
+-- local gameState = "start"
 
 local startTime
 
@@ -41,9 +41,9 @@ function love.load()
   Text.configure.font_table("Fonts")
   Audio = { ch20 = love.audio.newSource("assets/sounds/CH 20.ogg", "static"), }
   Text.configure.add_text_sound(Audio.ch20, 0.2)
-
-  G.characterScenery:load()
-  G.startScenery:load()
+  G.currentScenery:load()
+  -- G.characterScenery:load()
+  -- G.startScenery:load()
 
   startTime = love.timer.getTime()
 end
@@ -53,32 +53,38 @@ function love.resize(w, h)
 end
 
 function love.update(dt)
-  input:update()
-  if gameState == "start" then
-    if input:pressed('change') then -- 'change'ボタンで画面切り替え
-      gameState = "playing"
-    end
-  end
+  -- input:update()
+  G.currentScenery:update(dt)
+  -- if gameState == "start" then
+  --   if input:pressed('change') then -- 'change'ボタンで画面切り替え
+  --     gameState = "playing"
+  --   end
+  -- end
   G.currentTime = love.timer.getTime() - startTime
-  if gameState == "start" then
-    G.startScenery:update(dt)
-  elseif gameState == "playing" then
-    G.characterScenery:update(dt)
-  end
+  -- if gameState == "start" then
+  --   G.startScenery:update(dt)
+  -- elseif gameState == "playing" then
+  --   G.characterScenery:update(dt)
+  -- end
 end
 
 function love.draw()
-  if gameState == "start" then
-    love.graphics.clear(G.palette[1])
-    Push:apply("start")
-    love.graphics.clear(G.palette[2])
-    G.startScenery:draw()
-    Push:apply("end")
-  elseif gameState == "playing" then
-    love.graphics.clear(G.palette[1])
-    Push:apply("start")
-    love.graphics.clear(G.palette[2])
-    G.characterScenery:draw()
-    Push:apply("end")
-  end
+  love.graphics.clear(G.palette[1])
+  Push:apply("start")
+  love.graphics.clear(G.palette[2])
+  G.currentScenery:draw()
+  Push:apply("end")
+  -- if gameState == "start" then
+  --   love.graphics.clear(G.palette[1])
+  --   Push:apply("start")
+  --   love.graphics.clear(G.palette[2])
+  --   G.startScenery:draw()
+  --   Push:apply("end")
+  -- elseif gameState == "playing" then
+  --   love.graphics.clear(G.palette[1])
+  --   Push:apply("start")
+  --   love.graphics.clear(G.palette[2])
+  --   G.characterScenery:draw()
+  --   Push:apply("end")
+  -- end
 end
