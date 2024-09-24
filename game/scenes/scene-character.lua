@@ -30,7 +30,8 @@ function game:load(args)
     enemyHit = love.audio.newSource("assets/sounds/enemyHit.wav", "static"),
     gameOver = love.audio.newSource("assets/sounds/gameOver.wav", "static"),
     shoot = love.audio.newSource("assets/sounds/shoot.wav", "static"),
-    bulletHit = love.audio.newSource("assets/sounds/bulletHit.wav", "static")
+    bulletHit = love.audio.newSource("assets/sounds/bulletHit.wav", "static"),
+    coin = love.audio.newSource("assets/sounds/coin.wav", "static"),
   }
   -- 画像の初期位置
   self.imageX = gameMidX
@@ -82,6 +83,7 @@ function game:update(dt)
       self.score = self.score + 1
       self.world:remove(coin.collider)
       table.remove(self.coins, i)
+      self.sounds.coin:play()
     end
   end
   -- 弾丸の発射
