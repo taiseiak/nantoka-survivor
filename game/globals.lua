@@ -13,4 +13,5 @@ G.palette = {
 
 -- This is the default scene.
 -- Change the string to change the default scene.
-G.scenery = Scenery("scene-character")
+-- G.characterScenery = Scenery("scene-character")
+G.currentScenery = Scenery("scene-startScreen")
