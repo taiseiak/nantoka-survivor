@@ -102,10 +102,9 @@ function game:update(dt)
   -- 弾丸の発射
   self.shootCooldown = self.shootCooldown - dt
   if input:pressed('shoot') and self.shootCooldown <= 0 and self.score > 0 then
-    print("shootCooldownTime")
-    self.score = self.score - 1
-    self:shootBullet()
-    self.shootCooldown = self.shootCooldownTime
+    if self:shootBullet() then
+      self.shootCooldown = self.shootCooldownTime
+    end
   end
 
   -- 弾丸の更新
@@ -275,10 +274,10 @@ end
 
 function game:shootBullet()
   local playerPos = vector(self.playerCollider:center())
-  local nearestEnemy = self:findNearestEnemy(playerPos)
+  local nearestVisibleEnemy = self:findNearestVisibleEnemy(playerPos)
   -- プレイヤーからマウスの方向ベクトルの計算
-  if nearestEnemy then
-    local enemyPos = vector(nearestEnemy.collider:center())
+  if nearestVisibleEnemy then
+    local enemyPos = vector(nearestVisibleEnemy.collider:center())
     local direction = (enemyPos - playerPos):norm()
     local bullet = {
       pos = playerPos:clone(),
@@ -288,16 +287,20 @@ function game:shootBullet()
     bullet.collider.tag = "Bullet"
     table.insert(self.bullets, bullet)
     self.sounds.shoot:play()
+    self.score = self.score - 1
+    return true
   end
+  return false
 end
 
-function game:findNearestEnemy(position)
+function game:findNearestVisibleEnemy(position)
   local nearestEnemy = nil
   local minDistance = math.huge
   for _, enemy in ipairs(self.enemies) do
     local enemyPos = vector(enemy.collider:center())
-    local distanceVec = enemyPos - position
-    if distanceVec then
+    -- 敵が画面内にいるかどうかのチェック
+    if self:isEnemyVisible(enemyPos) then
+      local distanceVec = enemyPos - position
       local distance = distanceVec:getmag()
       if distance < minDistance then
         minDistance = distance
@@ -306,6 +309,11 @@ function game:findNearestEnemy(position)
     end
   end
   return nearestEnemy
+end
+
+function game:isEnemyVisible(enemyPos)
+  return enemyPos.x >= 0 and enemyPos.y <= G.gameWidth and
+      enemyPos.y >= 0 and enemyPos.y <= G.gameHeight
 end
 
 -- ゲームをリセットする関数
