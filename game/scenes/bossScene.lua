@@ -70,13 +70,63 @@ function game:load(args)
   self.coinImage = love.graphics.newImage("assets/sprites/playdate_circle.png")
   self.coinRadius = self.coinImage:getWidth() / 4
   self.coins = {}
+  G.currentTime = 0
+  self.boss = nil
+  self.bossImage = love.graphics.newImage("assets/sprites/playdate_circle.png")
+  self.bossSpawnTime = 5 -- 5秒後にボスを出現させる
+  -- グローバル状態から弾丸タイプを読み込む
+  self.currentBulletType = G.bulletType or "normal"
+  -- 弾丸タイプの定義
+  self.bulletTypes = {
+    normal = { speed = 300, radius = self.bulletsImage:getWidth() / 4, damage = 1 },
+    rapid = { speed = 400, radius = self.bulletsImage:getWidth() / 5, damage = 1 },
+    powerful = { speed = 250, radius = self.bulletsImage:getWidth() / 3, damage = 2 }
+  }
 end
 
 function game:update(dt)
   input:update()
-  G.currentTime = G.currentTime + dt
-  if G.currentTime > 30 then
-    self.setScene("loadingScene", { next = "shopScene" })
+  -- ボスの生成
+  if G.currentTime >= self.bossSpawnTime and not self.boss then
+    self:spawnBoss()
+  end
+  -- ボスの更新
+  if self.boss then
+    local bossPos = vector(self.boss.collider:center())
+    local playerPos = vector(self.playerCollider:center())
+    local dirVec = (playerPos - bossPos):norm()
+    bossPos = bossPos + dirVec * self.boss.speed * dt
+    self.boss.collider:moveTo(bossPos:unpack())
+
+    -- ボスとプレイヤーの衝突判定
+    if self.playerCollider:collidesWith(self.boss.collider) and self.invincibleTime <= 0 then
+      G.currentlives = G.currentlives - 1 -- ボスとの衝突で2ライフ減少
+      self.invincibleTime = self.invincibleDuration
+      if G.currentlives <= 0 then
+        self.gameOver = true
+        self.sounds.gameOver:play()
+      else
+        self.sounds.enemyHit:play()
+      end
+    end
+
+    -- ボスと弾丸の衝突判定
+    for i = #self.bullets, 1, -1 do
+      local bullet = self.bullets[i]
+      if bullet.collider:collidesWith(self.boss.collider) then
+        self.boss.health = self.boss.health - 1
+        self.world:remove(bullet.collider)
+        table.remove(self.bullets, i)
+        self.sounds.bulletHit:play()
+        if self.boss.health <= 0 then
+          self.world:remove(self.boss.collider)
+          self.boss = nil
+          -- ボス撃破時の報酬
+          G.score = G.score + 50
+          break
+        end
+      end
+    end
   end
   if self.gameOver then
     -- ゲームオーバー時の処理（例：リスタートのための入力待ち）
@@ -86,24 +136,10 @@ function game:update(dt)
     return
   end
 
-  -- コインの収集
-  for i = #self.coins, 1, -1 do
-    local coin = self.coins[i]
-    if self.playerCollider:collidesWith(coin.collider) then
-      G.score = G.score + 2
-      self.world:remove(coin.collider)
-      table.remove(self.coins, i)
-      self.sounds.coin:play()
-      -- 速度を減少させる
-      self.currentSpeed = self.currentSpeed * self.speedReductionRate
-      -- 最低速度の設定
-      self.currentSpeed = math.max(self.currentSpeed, self.baseSpeed * 0.2)
-    end
-  end
   -- 弾丸の発射
   self.shootCooldown = self.shootCooldown - dt
   if input:pressed('shoot') and self.shootCooldown <= 0 and G.score > 0 then
-    if self:shootBullet() then
+    if self:shootBulletAtBoss() then
       self.shootCooldown = self.shootCooldownTime
     end
   end
@@ -143,8 +179,6 @@ function game:update(dt)
           self.gameOver = true
         end
       end
-      -- 敵を削除
-      self:removeEnemy(other)
     end
   end
   -- 無敵時間を更新
@@ -165,20 +199,6 @@ function game:update(dt)
 
   --  playerColliderの位置を更新
   self.playerCollider:moveTo(playerPos.x, playerPos.y)
-  -- 敵の生成のタイミング
-  self.spawnTimer = self.spawnTimer + dt
-  if self.spawnTimer >= self.spawnInterval then
-    self:spawnEnemy()
-    self.spawnTimer = 0
-  end
-
-  -- enemy画像playerに向かってを移動
-  for _, enemy in ipairs(self.enemies) do
-    local enemyPos = vector(enemy.collider:center())
-    local dirVec = (playerPos - enemyPos):norm()
-    enemyPos = enemyPos + dirVec * enemy.speed * dt
-    enemy.collider:moveTo(enemyPos:unpack())
-  end
   -- プレイヤーと敵の衝突チェック
   self:checkPlayerEnemyCollision()
 
@@ -221,7 +241,28 @@ function game:checkPlayerEnemyCollision()
   end
 end
 
+-- ボス生成
+function game:spawnBoss()
+  local bossRadius = self.bossImage:getWidth() / 2
+  self.boss = {
+    image = self.bossImage,
+    speed = 50,
+    health = 10, -- ボスの体力
+    collider = self.world:circle(G.gameWidth / 2, -bossRadius, bossRadius)
+  }
+  self.boss.collider.tag = "Boss"
+end
+
 function game:draw()
+  -- ボスの描画
+  if self.boss then
+    local bx, by = self.boss.collider:center()
+    love.graphics.draw(self.boss.image, bx - self.boss.image:getWidth() / 2, by - self.boss.image:getHeight() / 2)
+    -- ボスの体力バーの描画
+    love.graphics.setColor(1, 0, 0)
+    love.graphics.rectangle("fill", bx - 50, by - 60, self.boss.health * 10, 5)
+    love.graphics.setColor(1, 1, 1)
+  end
   if self.gameOver then
     -- ゲームオーバー画面の描画
     love.graphics.setColor(1, 0, 0)
@@ -262,36 +303,22 @@ function game:draw()
   end
 end
 
--- コインを生成する
-function game:spawnCoin(x, y)
-  local coin = {
-    x = x,
-    y = y,
-    collider = self.world:circle(x, y, self.coinRadius)
-  }
-  coin.collider.tag = "Coin"
-  table.insert(self.coins, coin)
-end
-
-function game:shootBullet()
+function game:shootBulletAtBoss()
   local playerPos = vector(self.playerCollider:center())
-  local nearestVisibleEnemy = self:findNearestVisibleEnemy(playerPos)
-  -- プレイヤーからマウスの方向ベクトルの計算
-  if nearestVisibleEnemy then
-    local enemyPos = vector(nearestVisibleEnemy.collider:center())
-    local direction = (enemyPos - playerPos):norm()
-    local bullet = {
-      pos = playerPos:clone(),
-      vel = direction * self.bulletsSpeed,
-      collider = self.world:circle(playerPos.x, playerPos.y, self.bulletsRadius)
-    }
-    bullet.collider.tag = "Bullet"
-    table.insert(self.bullets, bullet)
-    self.sounds.shoot:play()
-    G.score = G.score - 1
-    return true
-  end
-  return false
+  local bossPos = vector(self.boss.collider:center())
+  local direction = (bossPos - playerPos):norm()
+
+  local bullet = {
+    pos = playerPos:clone(),
+    vel = direction * self.bulletsSpeed,
+    collider = self.world:circle(playerPos.x, playerPos.y, self.bulletsRadius),
+    damage = self.bulletTypes[self.currentBulletType].damage
+  }
+  bullet.collider.tag = "Bullet"
+  table.insert(self.bullets, bullet)
+  self.sounds.shoot:play()
+  G.score = G.score - 1
+  return true
 end
 
 function game:findNearestVisibleEnemy(position)
@@ -339,6 +366,10 @@ function game:reset()
   end
   self.coins = {}
   G.score = 4
+  if self.boss then
+    self.world:remove(self.boss.collider)
+    self.boss = nil
+  end
 end
 
 -- 敵を削除する新しい関数でコインもここで落とす
@@ -354,46 +385,6 @@ function game:removeEnemy(enemyCollider, reason)
       table.remove(self.enemies, i)
       break
     end
-  end
-end
-
--- 新しく敵を生成する関数
-function game:spawnEnemy()
-  local radius = self.image:getWidth() / 2 -- プレイヤーの半径を使用
-  local enemy = {
-    image = love.graphics.newImage("assets/sprites/playdate_circle.png"),
-    speed = 70
-  }
-
-  -- enemyを画面外からランダムで出現
-  local spawnPos = vector.random() * math.max(G.gameWidth, G.gameHeight)
-  spawnPos = spawnPos + vector(G.gameWidth / 2, G.gameHeight / 2)
-
-  enemy.collider = self.world:circle(spawnPos.x, spawnPos.y, radius)
-  enemy.collider.tag = "Enemy"
-
-  -- 衝突しない位置を探す
-  local maxAttempts = 10
-  local attempts = 0
-  local validPosition = false
-
-  while not validPosition and attempts < maxAttempts do
-    validPosition = true
-    for _, otherEnemy in ipairs(self.enemies) do
-      if enemy.collider:collidesWith(otherEnemy.collider) then
-        validPosition = false
-        -- 新しい位置を生成
-        spawnPos = vector.random() * math.max(G.gameWidth, G.gameHeight)
-        break
-      end
-    end
-    attempts = attempts + 1
-  end
-  if validPosition then
-    table.insert(self.enemies, enemy)
-  else
-    print("Failed to find a valid spawn position for the enemy.")
-    self.world:remove(enemy.collider)
   end
 end
 
