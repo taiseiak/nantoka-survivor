@@ -78,10 +78,11 @@ function game:load(args)
   self.currentBulletType = G.bulletType or "normal"
   -- 弾丸タイプの定義
   self.bulletTypes = {
-    normal = { speed = 300, radius = self.bulletsImage:getWidth() / 4, damage = 1 },
-    rapid = { speed = 400, radius = self.bulletsImage:getWidth() / 5, damage = 1 },
-    powerful = { speed = 250, radius = self.bulletsImage:getWidth() / 3, damage = 2 }
+    normal = { speed = 300, radius = 5, damage = 1 },
+    rapid = { speed = 400, radius = 3, damage = 1 },
+    powerful = { speed = 250, radius = 10, damage = 2 }
   }
+  self.currentBulletType = self.bulletTypes[G.bulletType]
 end
 
 function game:update(dt)
@@ -310,9 +311,10 @@ function game:shootBulletAtBoss()
 
   local bullet = {
     pos = playerPos:clone(),
-    vel = direction * self.bulletsSpeed,
+    vel = direction * self.currentBulletType.speed,
+    radius = self.currentBulletType.radius,
     collider = self.world:circle(playerPos.x, playerPos.y, self.bulletsRadius),
-    damage = self.bulletTypes[self.currentBulletType].damage
+    damage = self.currentBulletType.damage
   }
   bullet.collider.tag = "Bullet"
   table.insert(self.bullets, bullet)

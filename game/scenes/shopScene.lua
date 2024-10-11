@@ -52,12 +52,16 @@ end
 
 function game:draw()
   love.graphics.printf("Shop", 0, 50, G.gameWidth, "center")
+  love.graphics.printf("Your money: ¥" .. G.score * 10, 0, 80, G.gameWidth, "center")
   for i, item in ipairs(self.items) do
-    local y = 100 + (i - 1) * 30
-    local text = item.name
-    if i == self.selectedItem then text = "> " .. text .. " <" end
+    local y = 120 + (i - 1) * 30
+    local text = string.format("%s - Cost: ¥%d", item.name, item.cost * 10)
+    if i == self.selectedItem then
+      text = "> " .. text .. " <"
+    end
     love.graphics.printf(text, 0, y, G.gameWidth, "center")
   end
+  love.graphics.printf("Press SPACE to buy", 0, G.gameHeight - 50, G.gameWidth, "center")
 end
 
 return game
