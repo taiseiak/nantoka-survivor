@@ -52,7 +52,10 @@ end
 
 function game:draw()
   love.graphics.printf("Shop", 0, 50, G.gameWidth, "center")
-  love.graphics.printf("Your money: ¥" .. G.score * 10, 0, 80, G.gameWidth, "center")
+  -- スコアの表示
+  love.graphics.print("¥:" .. G.score * 10, 10, 30)
+  -- プレイヤーのライフを表示
+  love.graphics.print("Lives: " .. G.currentlives, 10, 10)
   for i, item in ipairs(self.items) do
     local y = 120 + (i - 1) * 30
     local text = string.format("%s - Cost: ¥%d", item.name, item.cost * 10)
@@ -61,7 +64,7 @@ function game:draw()
     end
     love.graphics.printf(text, 0, y, G.gameWidth, "center")
   end
-  love.graphics.printf("Press SPACE to buy", 0, G.gameHeight - 50, G.gameWidth, "center")
+  love.graphics.printf("Press b to buy", 0, G.gameHeight - 50, G.gameWidth, "center")
 end
 
 return game

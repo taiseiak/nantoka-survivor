@@ -11,9 +11,6 @@ G.palette = {
   { 50 / 255,  47 / 255,  41 / 255 },  -- #322f29
   { 215 / 255, 212 / 255, 204 / 255 }, -- #d7d4cc
 }
-G.items = {
-  { name = "rapid bullet", type = "rapid" },
-}
 G.bulletType="normal"
 
 

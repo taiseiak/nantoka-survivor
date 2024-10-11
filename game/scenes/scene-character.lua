@@ -23,6 +23,9 @@ local input = Baton.new {
     move = { 'left', 'right', 'up', 'down' } },
 }
 function game:load(args)
+  G.currentlives = 3
+  G.score = 4
+  G.bulletType = "normal"
   -- 画像の読み込み
   self.image = love.graphics.newImage(
     "assets/sprites/playdate_circle.png")
@@ -70,12 +73,13 @@ function game:load(args)
   self.coinImage = love.graphics.newImage("assets/sprites/playdate_circle.png")
   self.coinRadius = self.coinImage:getWidth() / 4
   self.coins = {}
+  self.limitTime = 30
 end
 
 function game:update(dt)
   input:update()
-  G.currentTime = G.currentTime + dt
-  if G.currentTime > 30 then
+  self.limitTime = self.limitTime - dt
+  if self.limitTime < 0 then
     self.setScene("loadingScene", { next = "shopScene" })
   end
   if self.gameOver then
@@ -232,6 +236,8 @@ function game:draw()
   end
   -- 移動速度の描画
   love.graphics.print("Speed:" .. math.floor(self.currentSpeed), 10, 50)
+  -- 残り時間の描画
+  love.graphics.print("Time:" .. math.floor(self.limitTime), 10, 70)
   -- コインの描画
   for _, coin in ipairs(self.coins) do
     local cx, cy = coin.collider:center()

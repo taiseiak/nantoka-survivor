@@ -23,6 +23,8 @@ local input = Baton.new {
     move = { 'left', 'right', 'up', 'down' } },
 }
 function game:load(args)
+  -- ボスが倒されたかのフラグ
+  self.bossDefeated = false
   -- 画像の読み込み
   self.image = love.graphics.newImage(
     "assets/sprites/playdate_circle.png")
@@ -88,7 +90,7 @@ end
 function game:update(dt)
   input:update()
   -- ボスの生成
-  if G.currentTime >= self.bossSpawnTime and not self.boss then
+  if G.currentTime >= self.bossSpawnTime and not self.boss and not self.bossDefeated then
     self:spawnBoss()
   end
   -- ボスの更新
@@ -115,15 +117,12 @@ function game:update(dt)
     for i = #self.bullets, 1, -1 do
       local bullet = self.bullets[i]
       if bullet.collider:collidesWith(self.boss.collider) then
-        self.boss.health = self.boss.health - 1
+        self.boss.health = self.boss.health - self.currentBulletType.damage
         self.world:remove(bullet.collider)
         table.remove(self.bullets, i)
         self.sounds.bulletHit:play()
         if self.boss.health <= 0 then
-          self.world:remove(self.boss.collider)
-          self.boss = nil
-          -- ボス撃破時の報酬
-          G.score = G.score + 50
+          self:defeatBoss()
           break
         end
       end
@@ -133,6 +132,7 @@ function game:update(dt)
     -- ゲームオーバー時の処理（例：リスタートのための入力待ち）
     if input:pressed('reset') then -- 'reset'ボタンでリスタート
       self:reset()
+      self.setScene("loadingScene", { next = "scene-character" })
     end
     return
   end
@@ -274,6 +274,7 @@ function game:draw()
   end
   -- 移動速度の描画
   love.graphics.print("Speed:" .. math.floor(self.currentSpeed), 10, 50)
+
   -- コインの描画
   for _, coin in ipairs(self.coins) do
     local cx, cy = coin.collider:center()
@@ -321,6 +322,15 @@ function game:shootBulletAtBoss()
   self.sounds.shoot:play()
   G.score = G.score - 1
   return true
+end
+
+function game:defeatBoss()
+  -- ボス撃破時の処理
+  self.world:remove(self.boss.collider)
+  self.boss = nil
+  self.bossDefeated = true
+  -- 次のシーンに移動（例: リザルト画面）
+  self.setScene("loadingScene", { next = "resultScene" })
 end
 
 function game:findNearestVisibleEnemy(position)
