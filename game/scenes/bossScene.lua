@@ -31,10 +31,14 @@ function game:load(args)
   -- 音声ファイルの読み込み
   self.sounds = {
     enemyHit = love.audio.newSource("assets/sounds/enemyHit.wav", "static"),
-    gameOver = love.audio.newSource("assets/sounds/gameOver.wav", "static"),
+    gameOver = love.audio.newSource("assets/sounds/First_Game_Over_M295.mp3", "static"),
+    -- https://dova-s.jp/bgm/download15209.html  funagawa's music
     shoot = love.audio.newSource("assets/sounds/shoot.wav", "static"),
     bulletHit = love.audio.newSource("assets/sounds/bulletHit.wav", "static"),
     coin = love.audio.newSource("assets/sounds/coin.wav", "static"),
+    bossBatle = love.audio.newSource("assets/sounds/Tenacity.mp3", "static"),
+    -- https://dova-s.jp/bgm/play21285.html　funagawa's music
+
   }
   -- 画像の初期位置
   self.imageX = gameMidX
@@ -87,6 +91,7 @@ end
 
 function game:update(dt)
   input:update()
+  self.sounds.bossBatle:play()
   -- ボスの生成
   if G.currentTime >= self.bossSpawnTime and not self.boss and not self.bossDefeated then
     self:spawnBoss()
@@ -105,7 +110,6 @@ function game:update(dt)
       self.invincibleTime = self.invincibleDuration
       if G.currentlives <= 0 then
         self.gameOver = true
-        self.sounds.gameOver:play()
       else
         self.sounds.enemyHit:play()
       end
@@ -120,6 +124,7 @@ function game:update(dt)
         table.remove(self.bullets, i)
         self.sounds.bulletHit:play()
         if self.boss.health <= 0 then
+          self.sounds.bossBatle:stop()
           self:defeatBoss()
           break
         end
@@ -144,7 +149,10 @@ function game:update(dt)
 
   if self.gameOver then
     -- ゲームオーバー時の処理（例：リスタートのための入力待ち）
+    self.sounds.bossBatle:stop()
+    self.sounds.gameOver:play()
     if input:pressed('reset') then -- 'reset'ボタンでリスタート
+      self.sounds.gameOver:stop()
       self:reset()
       self.setScene("loadingScene", { next = "scene-character" })
     end
@@ -260,8 +268,6 @@ function game:checkPlayerEnemyCollision()
 
         if G.currentlives <= 0 then
           self.gameOver = true
-          self.sounds.enemyHit:stop()
-          self.sounds.gameOver:play()
         else
           self.sounds.enemyHit:play()
         end
@@ -325,6 +331,14 @@ function game:spawnBoss()
 end
 
 function game:draw()
+  if self.gameOver then
+    -- ゲームオーバー画面の描画
+    love.graphics.setColor(1, 0, 0)
+    love.graphics.printf("GAME OVER", 0, G.gameHeight / 2 - 20, G.gameWidth, "center")
+    love.graphics.printf("Press R to Restart", 0, G.gameHeight / 2 + 20, G.gameWidth, "center")
+    love.graphics.setColor(1, 1, 1)
+    return
+  end
   -- ボスの描画
   if self.boss then
     local bx, by = self.boss.collider:center()
@@ -333,14 +347,6 @@ function game:draw()
     love.graphics.setColor(1, 0, 0)
     love.graphics.rectangle("fill", bx - 50, by - 60, self.boss.health * 10, 5)
     love.graphics.setColor(1, 1, 1)
-  end
-  if self.gameOver then
-    -- ゲームオーバー画面の描画
-    love.graphics.setColor(1, 0, 0)
-    love.graphics.printf("GAME OVER", 0, G.gameHeight / 2 - 20, G.gameWidth, "center")
-    love.graphics.printf("Press R to Restart", 0, G.gameHeight / 2 + 20, G.gameWidth, "center")
-    love.graphics.setColor(1, 1, 1)
-    return
   end
   -- 移動速度の描画
   love.graphics.print("Speed:" .. math.floor(self.currentSpeed), 10, 50)

@@ -32,10 +32,12 @@ function game:load(args)
   -- 音声ファイルの読み込み
   self.sounds = {
     enemyHit = love.audio.newSource("assets/sounds/enemyHit.wav", "static"),
-    gameOver = love.audio.newSource("assets/sounds/gameOver.wav", "static"),
+    gameOver = love.audio.newSource("assets/sounds/First_Game_Over_M295.mp3", "static"),
     shoot = love.audio.newSource("assets/sounds/shoot.wav", "static"),
     bulletHit = love.audio.newSource("assets/sounds/bulletHit.wav", "static"),
     coin = love.audio.newSource("assets/sounds/coin.wav", "static"),
+    normalBatle = love.audio.newSource("assets/sounds/Battle_Loki.mp3", "static"),
+    -- https://dova-s.jp/bgm/download20424.html  funagawa's music
   }
   -- 画像の初期位置
   self.imageX = gameMidX
@@ -78,13 +80,26 @@ end
 
 function game:update(dt)
   input:update()
+  self.sounds.normalBatle:play()
   self.limitTime = self.limitTime - dt
   if self.limitTime < 0 then
+    self.sounds.normalBatle:stop()
     self.setScene("loadingScene", { next = "shopScene" })
   end
+  -- if self.gameOver then
+  --   -- ゲームオーバー時の処理（例：リスタートのための入力待ち）
+  --   if input:pressed('reset') then -- 'reset'ボタンでリスタート
+  --     self:reset()
+  --   end
+  --   return
+  -- end
+
   if self.gameOver then
     -- ゲームオーバー時の処理（例：リスタートのための入力待ち）
+    self.sounds.normalBatle:stop()
+    self.sounds.gameOver:play()
     if input:pressed('reset') then -- 'reset'ボタンでリスタート
+      self.sounds.gameOver:stop()
       self:reset()
     end
     return

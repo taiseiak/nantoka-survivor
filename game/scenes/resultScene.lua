@@ -11,10 +11,16 @@ function game:load(args)
     color = G.palette[1],
     font = Fonts.shinonome,
   })
-  self.text:send("Congratulation!!!", 200)
+  self.text:send("Congratulations!!!", 200)
+  self.sounds = {
+    congratulations = love.audio.newSource("assets/sounds/congratulations.mp3", "static"),
+    -- https://dova-s.jp/bgm/play14900.html　マニーラ
+
+  }
 end
 
 function game:update(dt)
+  self.sounds.congratulations:play()
   self.text:update(dt)
 end
 

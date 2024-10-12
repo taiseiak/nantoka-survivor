@@ -25,11 +25,19 @@ function game:load(args)
   }
   self.selectedItem = 1
   self.displayStart = 1
+
+  self.sounds = {
+    shop = love.audio.newSource("assets/sounds/shop.mp3", "static"),
+    -- https://dova-s.jp/bgm/play20603.html MAKOOTO
+
+  }
 end
 
 function game:update(dt)
   input:update()
+  self.sounds.shop:play()
   if input:pressed("Boss") then
+    self.sounds.shop:stop()
     self.setScene("loadingScene", { next = "bossScene" })
   end
   -- アイテム選択のロジック

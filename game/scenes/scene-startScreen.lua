@@ -26,11 +26,17 @@ function startScreen:load(args)
     font = Fonts.subTitle,
   })
   self.subTitleText:send("Press SPACE to start", 200)
+  self.sounds = {
+    startMusic = love.audio.newSource("assets/sounds/start.mp3", "static"),
+    -- https://dova-s.jp/bgm/play19208.html　蒲鉾さちこ （カマボコサチコ）
+  }
 end
 
 function startScreen:update(dt)
   input:update()
+  self.sounds.startMusic:play()
   if input:pressed("start") then
+    self.sounds.startMusic:stop()
     self.setScene("loadingScene", { next = "scene-character" })
   end
 
