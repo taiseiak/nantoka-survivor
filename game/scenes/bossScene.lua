@@ -39,12 +39,10 @@ function game:load(args)
   -- 画像の初期位置
   self.imageX = gameMidX
   self.imageY = gameMidY
-  -- 最初のプレイヤーの移動速度
-  self.baseSpeed = 100
   -- コイン一枚の減速率
   self.speedReductionRate = 0.99
   -- 今の速度の最初
-  self.currentSpeed = self.baseSpeed
+  self.currentSpeed = G.baseSpeed
   -- 画像の移動速度
   self.speed = 100
   -- HCワールドの初期化
@@ -128,6 +126,22 @@ function game:update(dt)
       end
     end
   end
+
+  -- コインの収集
+  for i = #self.coins, 1, -1 do
+    local coin = self.coins[i]
+    if self.playerCollider:collidesWith(coin.collider) then
+      G.score = G.score + 2
+      self.world:remove(coin.collider)
+      table.remove(self.coins, i)
+      self.sounds.coin:play()
+      -- 速度を減少させる
+      self.currentSpeed = self.currentSpeed * self.speedReductionRate
+      -- 最低速度の設定
+      self.currentSpeed = math.max(self.currentSpeed, G.baseSpeed * 0.2)
+    end
+  end
+
   if self.gameOver then
     -- ゲームオーバー時の処理（例：リスタートのための入力待ち）
     if input:pressed('reset') then -- 'reset'ボタンでリスタート
@@ -180,6 +194,8 @@ function game:update(dt)
           self.gameOver = true
         end
       end
+      -- 敵を削除
+      self:removeEnemy(other)
     end
   end
   -- 無敵時間を更新
@@ -200,6 +216,20 @@ function game:update(dt)
 
   --  playerColliderの位置を更新
   self.playerCollider:moveTo(playerPos.x, playerPos.y)
+  -- 敵の生成のタイミング
+  self.spawnTimer = self.spawnTimer + dt
+  if self.spawnTimer >= self.spawnInterval then
+    self:spawnEnemy()
+    self.spawnTimer = 0
+  end
+
+  -- enemy画像playerに向かってを移動
+  for _, enemy in ipairs(self.enemies) do
+    local enemyPos = vector(enemy.collider:center())
+    local dirVec = (playerPos - enemyPos):norm()
+    enemyPos = enemyPos + dirVec * enemy.speed * dt
+    enemy.collider:moveTo(enemyPos:unpack())
+  end
   -- プレイヤーと敵の衝突チェック
   self:checkPlayerEnemyCollision()
 
@@ -239,6 +269,46 @@ function game:checkPlayerEnemyCollision()
         break -- 1回の衝突で1ライフだけ減らす
       end
     end
+  end
+end
+
+-- 新しく敵を生成する関数
+function game:spawnEnemy()
+  local radius = self.image:getWidth() / 2 -- プレイヤーの半径を使用
+  local enemy = {
+    image = love.graphics.newImage("assets/sprites/playdate_circle.png"),
+    speed = 70
+  }
+
+  -- enemyを画面外からランダムで出現
+  local spawnPos = vector.random() * math.max(G.gameWidth, G.gameHeight)
+  spawnPos = spawnPos + vector(G.gameWidth / 2, G.gameHeight / 2)
+
+  enemy.collider = self.world:circle(spawnPos.x, spawnPos.y, radius)
+  enemy.collider.tag = "Enemy"
+
+  -- 衝突しない位置を探す
+  local maxAttempts = 10
+  local attempts = 0
+  local validPosition = false
+
+  while not validPosition and attempts < maxAttempts do
+    validPosition = true
+    for _, otherEnemy in ipairs(self.enemies) do
+      if enemy.collider:collidesWith(otherEnemy.collider) then
+        validPosition = false
+        -- 新しい位置を生成
+        spawnPos = vector.random() * math.max(G.gameWidth, G.gameHeight)
+        break
+      end
+    end
+    attempts = attempts + 1
+  end
+  if validPosition then
+    table.insert(self.enemies, enemy)
+  else
+    print("Failed to find a valid spawn position for the enemy.")
+    self.world:remove(enemy.collider)
   end
 end
 
@@ -363,7 +433,7 @@ function game:reset()
   self.gameOver = false
   self.enemies = {}
   self.spawnTimer = 0
-  self.currentSpeed = self.baseSpeed
+  self.currentSpeed = G.baseSpeed
   -- プレイヤーの位置をリセット
   self.playerCollider:moveTo(gameMidX, gameMidY)
   -- その他の初期化処理
@@ -398,6 +468,17 @@ function game:removeEnemy(enemyCollider, reason)
       break
     end
   end
+end
+
+-- コインを生成する
+function game:spawnCoin(x, y)
+  local coin = {
+    x = x,
+    y = y,
+    collider = self.world:circle(x, y, self.coinRadius)
+  }
+  coin.collider.tag = "Coin"
+  table.insert(self.coins, coin)
 end
 
 return game

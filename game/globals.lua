@@ -6,6 +6,7 @@ G.gameWidth, G.gameHeight = 400, 240
 G.currentTime = 0
 G.currentlives = 3
 G.score = 3
+G.baseSpeed=100
 -- https://lospec.com/palette-list/playdate
 G.palette = {
   { 50 / 255,  47 / 255,  41 / 255 },  -- #322f29
