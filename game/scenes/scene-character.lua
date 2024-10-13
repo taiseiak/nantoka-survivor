@@ -34,7 +34,7 @@ function game:load(args)
   -- 背景画像の読み込み
   self.backgroundImage = love.graphics.newImage("assets/sprites/forest-dot1.jpg")
   -- https://game-materials.com/forest-dot/
-  -- 画像の読み込み
+  -- player画像の読み込み
   self.playerImage = love.graphics.newImage(
     "assets/sprites/character_madoshi_01_black.png")
   self.playerScale = 0.05 -- プレイヤーの画像スケール
@@ -98,7 +98,7 @@ function game:update(dt)
   input:update()
   self.sounds.normalBatle:play()
   self.limitTime = self.limitTime - dt
-  if self.limitTime < 0 then
+  if self.limitTime < 0 and G.currentlives > 0 then
     self.sounds.normalBatle:stop()
     self.setScene("loadingScene", { next = "shopScene" })
   end
@@ -356,6 +356,7 @@ end
 
 -- ゲームをリセットする関数
 function game:reset()
+  self.limitTime = 30
   G.currentlives = 3
   self.invincibleTime = 0
   self.gameOver = false

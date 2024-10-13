@@ -16,6 +16,9 @@ local gameMidX = G.gameWidth / 2
 local gameMidY = G.gameHeight / 2
 
 function game:load(args)
+  -- 背景画像の読み込み
+  self.backgroundImage = love.graphics.newImage("assets/sprites/dungeon-dot2.jpg")
+  -- https://game-materials.com/dungeon-dot/
   self.items = {
     { name = "Normal Bullet", type = "normal",   cost = 0 },
     { name = "Rapid Fire",    type = "rapid",    cost = 5 },
@@ -82,6 +85,10 @@ function game:update(dt)
 end
 
 function game:draw()
+  -- 背景画像の描画
+  local scaleX = G.gameWidth / self.backgroundImage:getWidth()
+  local scaleY = G.gameHeight / self.backgroundImage:getHeight()
+  love.graphics.draw(self.backgroundImage, 0, 0, 0, scaleX, scaleY)
   love.graphics.printf("Shop", 0, 50, G.gameWidth, "center")
   -- スコアの表示
   love.graphics.print("¥:" .. G.score * 10, 10, 30)

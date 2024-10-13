@@ -23,11 +23,33 @@ local input = Baton.new {
     move = { 'left', 'right', 'up', 'down' } },
 }
 function game:load(args)
+  -- HCワールドの初期化
+  self.world = HC.new()
   -- ボスが倒されたかのフラグ
   self.bossDefeated = false
-  -- 画像の読み込み
-  self.image = love.graphics.newImage(
-    "assets/sprites/playdate_circle.png")
+  -- 背景画像の読み込み
+  self.backgroundImage = love.graphics.newImage("assets/sprites/dungeon-dot1.jpg")
+  -- player画像の読み込み
+  self.playerImage = love.graphics.newImage(
+    "assets/sprites/character_madoshi_01_black.png")
+  self.playerScale = 0.05 -- プレイヤーの画像スケール
+  -- 敵の画像
+  self.enemyImage = love.graphics.newImage("assets/sprites/character_monster_skeleton_01.png")
+  self.enemyScale = 0.05 -- 敵の画像スケール
+
+  -- コインの画像と初期設定
+  self.coinImage = love.graphics.newImage("assets/sprites/jewelry_hemisphere_yellow.png")
+  self.coinScale = 0.03 -- コインの画像スケール
+  self.coinRadius = (self.coinImage:getWidth() * self.coinScale) / 2
+  self.coins = {}
+  -- bossの画像と初期設定
+  self.boss = nil
+  self.bossImage = love.graphics.newImage("assets/sprites/character_monster_dragon_01_red.png")
+  self.bossSpawnTime = 5 -- 5秒後にボスを出現させる
+  self.bossScale = 0.15
+  -- プレイヤーのコライダーを設定
+  local playerRadius = (self.playerImage:getWidth() * self.playerScale) / 2
+  self.playerCollider = self.world:circle(gameMidX, gameMidY, playerRadius)
   -- 音声ファイルの読み込み
   self.sounds = {
     enemyHit = love.audio.newSource("assets/sounds/enemyHit.wav", "static"),
@@ -41,18 +63,14 @@ function game:load(args)
 
   }
   -- 画像の初期位置
-  self.imageX = gameMidX
-  self.imageY = gameMidY
+  self.playerImageX = gameMidX
+  self.playerImageY = gameMidY
   -- コイン一枚の減速率
   self.speedReductionRate = 0.99
   -- 今の速度の最初
   self.currentSpeed = G.baseSpeed
   -- 画像の移動速度
   self.speed = 100
-  -- HCワールドの初期化
-  self.world = HC.new()
-  -- playerのcolliderを設定ここでは一旦丸にする
-  self.playerCollider = self.world:circle(gameMidX, gameMidY, self.image:getWidth() / 2)
   -- 敵の設定
   self.enemies = {}
   self.spawnTimer = 0
@@ -70,14 +88,9 @@ function game:load(args)
   self.bulletsRadius = self.bulletsImage:getWidth() / 4
   self.shootCooldown = 0
   self.shootCooldownTime = 0.2
-  -- コインの初期設定
-  self.coinImage = love.graphics.newImage("assets/sprites/playdate_circle.png")
-  self.coinRadius = self.coinImage:getWidth() / 4
-  self.coins = {}
+
   G.currentTime = 0
-  self.boss = nil
-  self.bossImage = love.graphics.newImage("assets/sprites/playdate_circle.png")
-  self.bossSpawnTime = 5 -- 5秒後にボスを出現させる
+
   -- グローバル状態から弾丸タイプを読み込む
   self.currentBulletType = G.bulletType or "normal"
   -- 弾丸タイプの定義
@@ -218,7 +231,7 @@ function game:update(dt)
   playerPos = playerPos + moveVec * self.currentSpeed * dt
 
   -- プレイヤーがゲーム画面の外に出ないようにする
-  local radius = self.image:getWidth() / 2
+  local radius = (self.playerImage:getWidth() * self.playerScale) / 2
   playerPos.x = math.max(radius, math.min(playerPos.x, G.gameWidth - radius))
   playerPos.y = math.max(radius, math.min(playerPos.y, G.gameHeight - radius))
 
@@ -280,7 +293,7 @@ end
 
 -- 新しく敵を生成する関数
 function game:spawnEnemy()
-  local radius = self.image:getWidth() / 2 -- プレイヤーの半径を使用
+  local radius = (self.enemyImage:getWidth() * self.enemyScale) / 2
   local enemy = {
     image = love.graphics.newImage("assets/sprites/playdate_circle.png"),
     speed = 70
@@ -320,17 +333,22 @@ end
 
 -- ボス生成
 function game:spawnBoss()
-  local bossRadius = self.bossImage:getWidth() / 2
+  local bossRadius = (self.bossImage:getWidth() * self.bossScale) / 2
+  local spawnX = G.gameWidth / 2
+  local spawnY = -bossRadius -- 画面上部から出現
   self.boss = {
-    image = self.bossImage,
     speed = 50,
     health = 10, -- ボスの体力
-    collider = self.world:circle(G.gameWidth / 2, -bossRadius, bossRadius)
+    collider = self.world:circle(spawnX, spawnY, bossRadius)
   }
   self.boss.collider.tag = "Boss"
 end
 
 function game:draw()
+  -- 背景画像の描画
+  local scaleX = G.gameWidth / self.backgroundImage:getWidth()
+  local scaleY = G.gameHeight / self.backgroundImage:getHeight()
+  love.graphics.draw(self.backgroundImage, 0, 0, 0, scaleX, scaleY)
   if self.gameOver then
     -- ゲームオーバー画面の描画
     love.graphics.setColor(1, 0, 0)
@@ -342,7 +360,8 @@ function game:draw()
   -- ボスの描画
   if self.boss then
     local bx, by = self.boss.collider:center()
-    love.graphics.draw(self.boss.image, bx - self.boss.image:getWidth() / 2, by - self.boss.image:getHeight() / 2)
+    love.graphics.draw(self.bossImage, bx, by, 0, self.bossScale, self.bossScale,
+      self.bossImage:getWidth() / 2, self.bossImage:getHeight() / 2)
     -- ボスの体力バーの描画
     love.graphics.setColor(1, 0, 0)
     love.graphics.rectangle("fill", bx - 50, by - 60, self.boss.health * 10, 5)
@@ -354,7 +373,8 @@ function game:draw()
   -- コインの描画
   for _, coin in ipairs(self.coins) do
     local cx, cy = coin.collider:center()
-    love.graphics.draw(self.coinImage, cx - self.coinRadius, cy - self.coinRadius, 0, 0.5, 0.5)
+    love.graphics.draw(self.coinImage, cx, cy, 0, self.coinScale, self.coinScale,
+      self.coinImage:getWidth() / 2, self.coinImage:getHeight() / 2)
   end
   -- スコアの表示
   love.graphics.print("¥:" .. G.score * 10, 10, 30)
@@ -365,19 +385,23 @@ function game:draw()
   end
   -- プレイヤーのライフを表示
   love.graphics.print("Lives: " .. G.currentlives, 10, 10)
+  love.graphics.setColor(1, 1, 1, 1)
   -- 無敵時間中はプレイヤーを点滅させる
   if self.invincibleTime > 0 and math.floor(self.invincibleTime * 10) % 2 == 0 then
     love.graphics.setColor(1, 1, 1, 0.5)
   end
+
   -- player描画
   local px, py = self.playerCollider:center()
-  love.graphics.draw(self.image, px - self.image:getWidth() / 2, py - self.image:getHeight() / 2)
+  love.graphics.draw(self.playerImage, px, py, 0, self.playerScale, self.playerScale,
+    self.playerImage:getWidth() / 2, self.playerImage:getHeight() / 2)
   love.graphics.setColor(1, 1, 1, 1)
 
   -- enemy描画
   for _, enemy in ipairs(self.enemies) do
     local ex, ey = enemy.collider:center()
-    love.graphics.draw(enemy.image, ex - enemy.image:getWidth() / 2, ey - enemy.image:getHeight() / 2)
+    love.graphics.draw(self.enemyImage, ex, ey, 0, self.enemyScale, self.enemyScale,
+      self.enemyImage:getWidth() / 2, self.enemyImage:getHeight() / 2)
   end
 end
 
@@ -465,7 +489,7 @@ function game:removeEnemy(enemyCollider, reason)
   for i, enemy in ipairs(self.enemies) do
     if enemy.collider == enemyCollider then
       local ex, ey = enemy.collider:center()
-      if reason ~= "playerCollison" then
+      if reason ~= "playerCollison" and (reason == "bulletHit" or self.invincibleTime <= 0) then
         self:spawnCoin(ex, ey)
       end
 
@@ -478,11 +502,8 @@ end
 
 -- コインを生成する
 function game:spawnCoin(x, y)
-  local coin = {
-    x = x,
-    y = y,
-    collider = self.world:circle(x, y, self.coinRadius)
-  }
+  local coin = {}
+  coin.collider = self.world:circle(x, y, self.coinRadius)
   coin.collider.tag = "Coin"
   table.insert(self.coins, coin)
 end
