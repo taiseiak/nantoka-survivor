@@ -34,7 +34,7 @@ function game:load(args)
     "assets/sprites/character_madoshi_01_black.png")
   self.playerScale = 0.05 -- プレイヤーの画像スケール
   -- 敵の画像
-  self.enemyImage = love.graphics.newImage("assets/sprites/character_monster_skeleton_01.png")
+  self.enemyImage = love.graphics.newImage("assets/sprites/character_monster_devil_red.png")
   self.enemyScale = 0.05 -- 敵の画像スケール
 
   -- コインの画像と初期設定
@@ -338,7 +338,7 @@ function game:spawnBoss()
   local spawnY = -bossRadius -- 画面上部から出現
   self.boss = {
     speed = 50,
-    health = 10, -- ボスの体力
+    health = 30, -- ボスの体力
     collider = self.world:circle(spawnX, spawnY, bossRadius)
   }
   self.boss.collider.tag = "Boss"
