@@ -52,12 +52,12 @@ function game:load(args)
   self.playerCollider = self.world:circle(gameMidX, gameMidY, playerRadius)
   -- 音声ファイルの読み込み
   self.sounds = {
-    enemyHit = love.audio.newSource("assets/sounds/enemyHit.wav", "static"),
-    gameOver = love.audio.newSource("assets/sounds/First_Game_Over_M295.mp3", "static"),
-    shoot = love.audio.newSource("assets/sounds/shoot.wav", "static"),
-    bulletHit = love.audio.newSource("assets/sounds/bulletHit.wav", "static"),
-    coin = love.audio.newSource("assets/sounds/coin.wav", "static"),
-    normalBatle = love.audio.newSource("assets/sounds/Battle_Loki.mp3", "static"),
+    enemyHit = love.audio.newSource("assets/sounds/enemyHit.wav", "stream"),
+    gameOver = love.audio.newSource("assets/sounds/First_Game_Over_M295.mp3", "stream"),
+    shoot = love.audio.newSource("assets/sounds/shoot.wav", "stream"),
+    bulletHit = love.audio.newSource("assets/sounds/bulletHit.wav", "stream"),
+    coin = love.audio.newSource("assets/sounds/coin.wav", "stream"),
+    normalBatle = love.audio.newSource("assets/sounds/Battle_Loki.mp3", "stream"),
     -- https://dova-s.jp/bgm/download20424.html  funagawa's music
   }
   -- 画像の初期位置

@@ -16,13 +16,16 @@ local input = Baton.new {
 }
 
 function startScreen:load(args)
+  -- 背景画像の読み込み
+  self.backgroundImage = love.graphics.newImage("assets/sprites/castle-exterior2.jpg")
+
   self.titleText = Text.new("center", {
-    color = G.palette[1],
+    color = G.palette[2],
     font = Fonts.Title,
   })
   self.titleText:send("Nantoka Survivor", 200)
   self.subTitleText = Text.new("center", {
-    color = G.palette[1],
+    color = G.palette[2],
     font = Fonts.subTitle,
   })
   self.subTitleText:send("Press SPACE to start", 200)
@@ -45,6 +48,10 @@ function startScreen:update(dt)
 end
 
 function startScreen:draw()
+  -- 背景画像の描画
+  local scaleX = G.gameWidth / self.backgroundImage:getWidth()
+  local scaleY = G.gameHeight / self.backgroundImage:getHeight()
+  love.graphics.draw(self.backgroundImage, 0, 0, 0, scaleX, scaleY)
   self.titleText:draw(startScreenMidX - self.titleText.get.width / 2,
     startScreenMidY - self.titleText.get.height / 2 - 50)
   self.subTitleText:draw(startScreenMidX - self.subTitleText.get.width / 2,
