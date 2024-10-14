@@ -75,6 +75,7 @@ function game:load(args)
   -- 敵の設定
   self.enemies = {}
   self.spawnTimer = 0
+  self.nextSpawnTime = love.math.random() * 2 -- 0~2秒の間でランダムに設定
   --  何秒間かに一体敵を生成
   self.spawnInterval = 3
   -- 無敵時間を追加（連続してダメージを受けないようにするため）
@@ -90,6 +91,17 @@ function game:load(args)
   self.shootCooldown = 0
   self.shootCooldownTime = 0.2
 
+  self.text1 = Text.new("center", {
+    color = G.palette[3],
+    font = Fonts.subTitle1,
+  })
+  self.text1:send("Game over", 200)
+
+  self.text2 = Text.new("center", {
+    color = G.palette[3],
+    font = Fonts.subTitle1,
+  })
+  self.text2:send("Press [R] to Restart", 200)
 
   self.limitTime = 30
 end
@@ -98,6 +110,8 @@ function game:update(dt)
   input:update()
   self.sounds.normalBatle:play()
   self.limitTime = self.limitTime - dt
+  self.text1:update(dt)
+  self.text2:update(dt)
   if self.limitTime < 0 and G.currentlives > 0 then
     self.sounds.normalBatle:stop()
     self.setScene("loadingScene", { next = "shopScene" })
@@ -109,7 +123,8 @@ function game:update(dt)
     self.sounds.gameOver:play()
     if input:pressed('reset') then -- 'reset'ボタンでリスタート
       self.sounds.gameOver:stop()
-      self:reset()
+      self.setScene("loadingScene", { next = "scene-character" })
+      -- self:reset()
     end
     return
   end
@@ -165,7 +180,7 @@ function game:update(dt)
     if other and other.tag == "Enemy" then
       -- self:OnTriggerEnter(other)
       if self.invincibleTime <= 0 then
-        G.currentlives = G.currentlives - 1
+        -- G.currentlives = G.currentlives - 1
         self.invincibleTime = self.invincibleDuration
         if G.currentlives <= 0 then
           self.gameOver = true
@@ -195,9 +210,10 @@ function game:update(dt)
   self.playerCollider:moveTo(playerPos.x, playerPos.y)
   -- 敵の生成のタイミング
   self.spawnTimer = self.spawnTimer + dt
-  if self.spawnTimer >= self.spawnInterval then
+  if self.spawnTimer >= self.nextSpawnTime then
     self:spawnEnemy()
     self.spawnTimer = 0
+    self.nextSpawnTime = 1 + love.math.random() * 2
   end
 
   -- enemy画像playerに向かってを移動
@@ -256,10 +272,10 @@ function game:draw()
   love.graphics.draw(self.backgroundImage, 0, 0, 0, scaleX, scaleY)
   if self.gameOver then
     -- ゲームオーバー画面の描画
-    love.graphics.setColor(1, 0, 0)
-    love.graphics.printf("GAME OVER", 0, G.gameHeight / 2 - 20, G.gameWidth, "center")
-    love.graphics.printf("Press R to Restart", 0, G.gameHeight / 2 + 20, G.gameWidth, "center")
-    love.graphics.setColor(1, 1, 1)
+    self.text1:draw(gameMidX - self.text1.get.width / 2,
+      gameMidY - self.text1.get.height / 2 - 25)
+    self.text2:draw(gameMidX - self.text2.get.width / 2,
+      gameMidY - self.text2.get.height / 2 + 25)
     return
   end
   -- 移動速度の描画

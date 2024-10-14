@@ -21,8 +21,8 @@ function game:load(args)
   -- https://game-materials.com/dungeon-dot/
   self.items = {
     { name = "Normal Bullet", type = "normal",   cost = 0 },
-    { name = "Rapid Fire",    type = "rapid",    cost = 5 },
-    { name = "Power Shot",    type = "powerful", cost = 10 },
+    { name = "Rapid Fire",    type = "rapid",    cost = 3 },
+    { name = "Power Shot",    type = "powerful", cost = 3 },
     { name = "Life + 1",      type = "life",     cost = 3 },
     { name = "speed up",      type = "speed",    cost = 3 },
   }

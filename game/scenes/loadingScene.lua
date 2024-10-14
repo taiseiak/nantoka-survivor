@@ -12,7 +12,7 @@ function game:load(args)
   nextScene = args.next
   self.text = Text.new("center", {
     color = G.palette[1],
-    font = Fonts.subTitle,
+    font = Fonts.text,
   })
   self.text:send("loading", 200)
 end

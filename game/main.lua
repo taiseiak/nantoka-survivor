@@ -20,11 +20,14 @@ function love.load()
       resizable = true
     })
 
- 
+
   Fonts = {
     shinonome = love.graphics.newFont("assets/fonts/Satoshi-Variable.ttf", 20, "mono"),
-    Title = love.graphics.newFont("assets/fonts/Satoshi-Variable.ttf", 40, "mono"),
-    subTitle = love.graphics.newFont("assets/fonts/Satoshi-Variable.ttf", 10, "mono"),
+    text = love.graphics.newFont("assets/fonts/Satoshi-Variable.ttf", 10, "mono"),
+    Title1 = love.graphics.newFont("assets/fonts/Satoshi-Variable.ttf", 40, "mono"),
+    subTitle1 = love.graphics.newFont("assets/fonts/Satoshi-Variable.ttf", 20, "mono"),
+    Title2 = love.graphics.newFont("assets/fonts/Satoshi-Variable.ttf", 42, "mono"),
+    subTitle2 = love.graphics.newFont("assets/fonts/Satoshi-Variable.ttf", 22, "mono"),
   }
   for _, font in pairs(Fonts) do
     font:setFilter('nearest', 'nearest')
@@ -33,7 +36,7 @@ function love.load()
   Audio = { ch20 = love.audio.newSource("assets/sounds/CH 20.ogg", "static"), }
   Text.configure.add_text_sound(Audio.ch20, 0.2)
   G.currentScenery:load()
-  
+
 
   startTime = love.timer.getTime()
 end
@@ -45,7 +48,6 @@ end
 function love.update(dt)
   G.currentScenery:update(dt)
   G.currentTime = love.timer.getTime() - startTime
-
 end
 
 function love.draw()

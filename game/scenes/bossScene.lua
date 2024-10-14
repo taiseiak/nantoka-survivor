@@ -46,7 +46,7 @@ function game:load(args)
   self.boss = nil
   self.bossImage = love.graphics.newImage("assets/sprites/character_monster_dragon_01_red.png")
   self.bossSpawnTime = 5 -- 5秒後にボスを出現させる
-  self.bossScale = 0.15
+  self.bossScale = 0.1
   -- プレイヤーのコライダーを設定
   local playerRadius = (self.playerImage:getWidth() * self.playerScale) / 2
   self.playerCollider = self.world:circle(gameMidX, gameMidY, playerRadius)
@@ -100,11 +100,25 @@ function game:load(args)
     powerful = { speed = 250, radius = 10, damage = 2 }
   }
   self.currentBulletType = self.bulletTypes[G.bulletType]
+
+  self.text1 = Text.new("center", {
+    color = G.palette[3],
+    font = Fonts.subTitle1,
+  })
+  self.text1:send("Game over", 200)
+
+  self.text2 = Text.new("center", {
+    color = G.palette[3],
+    font = Fonts.subTitle1,
+  })
+  self.text2:send("Press [R] to Restart", 200)
 end
 
 function game:update(dt)
   input:update()
   self.sounds.bossBatle:play()
+  self.text1:update(dt)
+  self.text2:update(dt)
   -- ボスの生成
   if G.currentTime >= self.bossSpawnTime and not self.boss and not self.bossDefeated then
     self:spawnBoss()
@@ -351,10 +365,10 @@ function game:draw()
   love.graphics.draw(self.backgroundImage, 0, 0, 0, scaleX, scaleY)
   if self.gameOver then
     -- ゲームオーバー画面の描画
-    love.graphics.setColor(1, 0, 0)
-    love.graphics.printf("GAME OVER", 0, G.gameHeight / 2 - 20, G.gameWidth, "center")
-    love.graphics.printf("Press R to Restart", 0, G.gameHeight / 2 + 20, G.gameWidth, "center")
-    love.graphics.setColor(1, 1, 1)
+    self.text1:draw(gameMidX - self.text1.get.width / 2,
+      gameMidY - self.text1.get.height / 2 - 25)
+    self.text2:draw(gameMidX - self.text2.get.width / 2,
+      gameMidY - self.text2.get.height / 2 + 25)
     return
   end
   -- ボスの描画
@@ -364,7 +378,7 @@ function game:draw()
       self.bossImage:getWidth() / 2, self.bossImage:getHeight() / 2)
     -- ボスの体力バーの描画
     love.graphics.setColor(1, 0, 0)
-    love.graphics.rectangle("fill", bx - 50, by - 60, self.boss.health * 10, 5)
+    love.graphics.rectangle("fill", bx - 50, by - 60, self.boss.health * 3, 5)
     love.graphics.setColor(1, 1, 1)
   end
   -- 移動速度の描画
