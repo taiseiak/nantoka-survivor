@@ -30,9 +30,10 @@ function game:load(args)
   self.displayStart = 1
 
   self.sounds = {
-    shop = love.audio.newSource("assets/sounds/shop.mp3", "static"),
+    shop = love.audio.newSource("assets/sounds/shop.mp3", "stream"),
     -- https://dova-s.jp/bgm/play20603.html MAKOOTO
-
+    selectSound = love.audio.newSource("assets/sounds/shopSelect.wav", "stream"),
+    buySound = love.audio.newSource("assets/sounds/shopBuy.wav", "stream"),
   }
 end
 
@@ -45,6 +46,7 @@ function game:update(dt)
   end
   -- アイテム選択のロジック
   if input:pressed("up") then
+    self.sounds.selectSound:play()
     self.selectedItem = self.selectedItem - 1
     if self.selectedItem < self.displayStart then
       self.displayStart = self.displayStart - 1
@@ -54,7 +56,9 @@ function game:update(dt)
       end
     end
   elseif input:pressed("down") then
+    self.sounds.selectSound:play()
     self.selectedItem = self.selectedItem + 1
+
     if self.selectedItem > self.displayStart + 2 then
       self.displayStart = self.displayStart + 1
       if self.displayStart > #self.items - 2 then
@@ -67,6 +71,7 @@ function game:update(dt)
   self.selectedItem = math.max(1, math.min(self.selectedItem, #self.items))
   -- アイテムの購入
   if input:pressed("buy") then
+    self.sounds.buySound:play()
     local item = self.items[self.selectedItem]
     if G.score >= item.cost then
       G.score = G.score - item.cost
@@ -111,8 +116,8 @@ function game:draw()
       love.graphics.printf(text, 0, y, G.gameWidth, "center")
     end
   end
-  love.graphics.printf("Press b to buy", 0, G.gameHeight - 30, G.gameWidth, "center")
-  love.graphics.printf("Press space to challenge the boss", 0, G.gameHeight - 50, G.gameWidth, "center")
+  love.graphics.printf("Press [B] to buy", 0, G.gameHeight - 30, G.gameWidth, "center")
+  love.graphics.printf("Press [SPACE] to challenge the boss", 0, G.gameHeight - 50, G.gameWidth, "center")
 end
 
 return game
